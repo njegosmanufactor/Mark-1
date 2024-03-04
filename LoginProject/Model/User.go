@@ -1,9 +1,12 @@
-package main
+package Model
 
-func main() {
-	type User struct {
-		Username string
-		Password string
-		Email    string
-	}
+type User struct {
+	Id           int
+	Name         string
+	Surename     string
+	Username     string
+	Password     string
+	Company      string
+	Email        string
+	Applications []string
 }
