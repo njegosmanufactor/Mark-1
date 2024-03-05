@@ -7,9 +7,9 @@ import (
 	"net/http"
 )
 
-// Globalna lista korisnika
 var users []model.User
 
+// RegisterHandler handles user registration.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -20,15 +20,15 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	users = append(users, user)
 
-	fmt.Fprintf(w, "Korisnik uspješno registrovan: %+v\n", user)
+	fmt.Fprintf(w, "User successfully registered: %+v\n", user)
 }
 
+// GetUsersHandler returns the list of users.
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	// Vrati sve korisnike kao JSON
 	json.NewEncoder(w).Encode(users)
 }
 
-// Prijavljivanje korisnika
+// LoginHandler handles user login.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginInfo struct {
 		Username string
@@ -42,15 +42,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, user := range users {
 		if user.Username == loginInfo.Username && user.Password == loginInfo.Password {
-			fmt.Fprintf(w, "Korisnik %s je uspješno prijavljen.\n", user.Username)
+			fmt.Fprintf(w, "User %s successfully logged in.\n", user.Username)
 			return
 		}
 	}
 
-	http.Error(w, "Pogrešno korisničko ime ili šifra.", http.StatusUnauthorized)
+	http.Error(w, "Incorrect username or password.", http.StatusUnauthorized)
 }
 
-// Promjena šifre korisnika
+// ChangePasswordHandler handles password change for a user.
 func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var changePasswordInfo struct {
 		Username    string
@@ -65,12 +65,11 @@ func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 
 	for i, user := range users {
 		if user.Username == changePasswordInfo.Username && user.Password == changePasswordInfo.OldPassword {
-			// Pronađen korisnik, mijenjamo šifru
 			users[i].Password = changePasswordInfo.NewPassword
-			fmt.Fprintf(w, "Šifra za korisnika %s uspješno promenjena.\n", user.Username)
+			fmt.Fprintf(w, "Password for user %s successfully changed.\n", user.Username)
 			return
 		}
 	}
 
-	http.Error(w, "Pogrešno korisničko ime ili šifra.", http.StatusUnauthorized)
+	http.Error(w, "Incorrect username or password.", http.StatusUnauthorized)
 }
