@@ -1,9 +1,11 @@
-package main
+package GoogleOAuth2
 
 import (
 	"fmt"
 	"net/http"
 	"text/template"
+
+	"log"
 
 	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
@@ -11,10 +13,10 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 
-	"log"
+	data "MongoGoogle/MongoDB"
 )
 
-func main() {
+func GoogleLogin() {
 
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
 	key := "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"
@@ -47,15 +49,20 @@ func main() {
 			fmt.Fprintln(res, err)
 			return
 		}
-		t, _ := template.ParseFiles("pages/success.html")
+		t, _ := template.ParseFiles("GoogleOAuth2/pages/success.html")
 		t.Execute(res, user)
+		data.SaveUser(user.Email, user.FirstName, user.LastName)
 	})
 	p.Get("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
 		gothic.BeginAuthHandler(res, req)
 	})
 
 	p.Get("/", func(res http.ResponseWriter, req *http.Request) {
-		t, _ := template.ParseFiles("pages/index.html")
+		t, err := template.ParseFiles("GoogleOAuth2/pages/index.html")
+		if err != nil {
+			fmt.Fprintf(res, "Error parsing template: %v", err)
+			return
+		}
 		t.Execute(res, false)
 	})
 
