@@ -8,8 +8,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"text/template"
 
+	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/google"
 )
 
 // Function called before main initialisation that loads env variables for github oauth
@@ -21,15 +26,56 @@ func init() {
 }
 
 func main() {
-	// Root route
-	// Simply returns a link to the login route
-	http.HandleFunc("/", rootHandler)
+	//Client secret created on google cloud platform/ Apis & Services / Credentials
+	key := "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"
+
+	//Time period over which the token is valid(or existant)
+	maxAge := 86400
+	isProd := false
+
+	store := sessions.NewCookieStore([]byte(key))
+	store.MaxAge(maxAge)
+	store.Options.Path = "/"
+
+	//On deafult should be enabled
+	store.Options.HttpOnly = true
+	//Enables or disables https protocol
+	store.Options.Secure = isProd
+
+	gothic.Store = store
+
+	//Creates provider for google using Client id and Client secret
+	goth.UseProviders(
+		google.New("261473284823-sh61p2obchbmdrq9pucc7s5oo9c8l98j.apps.googleusercontent.com", "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", "http://localhost:3000/auth/google/callback", "email", "profile"),
+	)
+
+	http.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
+		user, err := gothic.CompleteUserAuth(res, req)
+		if err != nil {
+			fmt.Fprintln(res, err)
+			return
+		}
+		t, _ := template.ParseFiles("pages/success.html")
+		t.Execute(res, user)
+	})
+	http.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
+		gothic.BeginAuthHandler(res, req)
+	})
+
+	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+		t, _ := template.ParseFiles("pages/index.html")
+		t.Execute(res, false)
+	})
 
 	// Login route
-	http.HandleFunc("/login/github/", githubLoginHandler)
+	http.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
+		githubLoginHandler(w, r)
+	})
 
 	// Github callback
-	http.HandleFunc("/login/github/callback", githubCallbackHandler)
+	http.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
+		githubCallbackHandler(w, r)
+	})
 
 	// Route where the authenticated user is redirected to
 	http.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
@@ -38,13 +84,8 @@ func main() {
 
 	// Listen and serve on port 3000
 	fmt.Println("[ UP ON PORT 3000 ]")
-	log.Panic(
-		http.ListenAndServe(":3000", nil),
-	)
-}
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `<a href="/login/github/">LOGIN</a>`)
+	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData string) {
@@ -75,7 +116,6 @@ func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
-
 	githubAccessToken := getGithubAccessToken(code)
 
 	githubData := getGithubData(githubAccessToken)
