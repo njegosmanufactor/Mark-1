@@ -15,6 +15,7 @@ var users = []user.User{
 	{Id: 1, Username: "Ranita", Password: "sifra123"},
 }
 
+// Implements basic log in functionality with simple authorisation
 func LogIn(w http.ResponseWriter, r *http.Request) {
 	var logDto LoginDto
 	err := json.NewDecoder(r.Body).Decode(&logDto)
@@ -32,6 +33,7 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Implements basic registration. Saves registered user localy in array users
 func Register(w http.ResponseWriter, r *http.Request) {
 	var user user.User
 	err := json.NewDecoder(r.Body).Decode(&user)
