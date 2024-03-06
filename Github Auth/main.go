@@ -10,6 +10,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
@@ -23,6 +24,7 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("No .env file found")
 	}
+
 }
 
 func main() {
@@ -49,7 +51,8 @@ func main() {
 		google.New("261473284823-sh61p2obchbmdrq9pucc7s5oo9c8l98j.apps.googleusercontent.com", "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", "http://localhost:3000/auth/google/callback", "email", "profile"),
 	)
 
-	http.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
+	mux := mux.NewRouter()
+	mux.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
 		user, err := gothic.CompleteUserAuth(res, req)
 		if err != nil {
 			fmt.Fprintln(res, err)
@@ -58,34 +61,36 @@ func main() {
 		t, _ := template.ParseFiles("pages/success.html")
 		t.Execute(res, user)
 	})
-	http.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
+
+	mux.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
 		gothic.BeginAuthHandler(res, req)
 	})
 
-	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		t, _ := template.ParseFiles("pages/index.html")
 		t.Execute(res, false)
 	})
 
 	// Login route
-	http.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
 		githubLoginHandler(w, r)
 	})
 
 	// Github callback
-	http.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
 		githubCallbackHandler(w, r)
 	})
 
 	// Route where the authenticated user is redirected to
-	http.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
 		loggedinHandler(w, r, "")
 	})
 
 	// Listen and serve on port 3000
 	fmt.Println("[ UP ON PORT 3000 ]")
 
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	err := http.ListenAndServe(":3000", mux)
+	log.Fatal(err)
 }
 
 func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData string) {
