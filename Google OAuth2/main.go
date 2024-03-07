@@ -47,6 +47,9 @@ func main() {
 			fmt.Fprintln(res, err)
 			return
 		}
+
+		// In success.html file or any front display we can select what we want to display.
+		// user is instance of goth.User class of which fields can be found in documentation.
 		t, _ := template.ParseFiles("pages/success.html")
 		t.Execute(res, user)
 	})
