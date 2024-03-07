@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,6 +12,37 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
+type GitHubData struct {
+	Login             string  `json:"login"`
+	Id                float64 `json:"id"`
+	NodeId            string  `json:"node_id"`
+	AvatarUrl         string  `json:"avatar_url"`
+	GravatarId        string  `json:"gravatar_id"`
+	Url               string  `json:"url"`
+	HtmlUrl           string  `json:"html_url"`
+	FollowersUrl      string  `json:"followers_url"`
+	FollowingUrl      string  `json:"following_url"`
+	GistsUrl          string  `json:"gists_url"`
+	StarredUrl        string  `json:"starred_url"`
+	SubscriptionsUrl  string  `json:"subscriptions_url"`
+	OrganizationsUrl  string  `json:"organizations_url"`
+	ReposUrl          string  `json:"repos_url"`
+	EventsUrl         string  `json:"events_url"`
+	RecievedEventsUrl string  `json:"recieved_events_url"`
+	Type              string  `json:"type"`
+	Name              string  `json:"name"`
+	Company           string  `json:"company"`
+	Blog              string  `json:"blog"`
+	Location          string  `json:"location"`
+	Email             string  `json:"email"`
+	Hireable          bool    `json:"hireable"`
+	Bio               string  `json:"bio"`
+	TwitterUsername   string  `json:"twitter_username"`
+	PublicRepos       int     `json:"public_repos"`
+	PublicGists       int     `json:"public_gists"`
+	Followers         int     `json:"followers"`
+}
 
 // Function called before main initialisation that loads env variables for github oauth
 func init() {
@@ -33,7 +65,8 @@ func main() {
 
 	// Route where the authenticated user is redirected to
 	http.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
-		loggedinHandler(w, r, "")
+		var nil GitHubData
+		loggedinHandler(w, r, nil)
 	})
 
 	// Listen and serve on port 3000
@@ -47,22 +80,14 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<a href="/login/github/">LOGIN</a>`)
 }
 
-func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData string) {
-	if githubData == "" {
-		// Unauthorized users get an unauthorized message
-		fmt.Fprintf(w, "UNAUTHORIZED!")
+func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData GitHubData) {
+	if githubData.Id == 0 {
+		fmt.Fprintf(w, "UNAUTHORISED!")
 		return
 	}
 
-	w.Header().Set("Content-type", "application/json")
-
-	var prettyJSON bytes.Buffer
-	parserr := json.Indent(&prettyJSON, []byte(githubData), "", "\t")
-	if parserr != nil {
-		log.Panic("JSON parse error")
-	}
-
-	fmt.Fprintf(w, string(prettyJSON.Bytes()))
+	t, _ := template.ParseFiles("pages/success.html")
+	t.Execute(w, githubData)
 }
 
 func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -80,11 +105,13 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	githubData := getGithubData(githubAccessToken)
 
+	//After authorisation callback is called
+	//loggedinHandler is used to display user data. Redirecting starts here.
 	loggedinHandler(w, r, githubData)
 }
 
 // Function that retrieves users data from github profile
-func getGithubData(accessToken string) string {
+func getGithubData(accessToken string) GitHubData {
 	req, reqerr := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if reqerr != nil {
 		log.Panic("API Request creation failed")
@@ -99,8 +126,12 @@ func getGithubData(accessToken string) string {
 	}
 
 	respbody, _ := ioutil.ReadAll(resp.Body)
-
-	return string(respbody)
+	var data GitHubData
+	err := json.Unmarshal(respbody, &data)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+	}
+	return data
 }
 
 // Function that calls Github api for access token generation
