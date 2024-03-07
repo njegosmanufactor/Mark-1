@@ -6,14 +6,18 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"> <!-- load bulma css -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"> <!-- load fontawesome -->
     <style>
-        body        { padding-top:70px; }
+        body { padding-top:70px; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="jumbotron text-center text-success">
         <h1>Authentication</h1>
-        <a href="/auth/google" class="btn btn-success"><span class="fa fa-google"></span> Sign In with Google</a>
+        <form action="/register" method="post">
+            <input type="text" name="username" placeholder="Username">
+            <input type="password" name="password" placeholder="Password">
+            <button type="submit">Register</button>
+        </form>
     </div>
 </div>
 </body>
