@@ -1,9 +1,19 @@
 package main
 
 import (
-	google "MongoGoogle/LoginRegister"
+	authentication "MongoGoogle/LoginRegister"
+	"log"
+
+	"github.com/joho/godotenv"
 )
 
+func init() {
+
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("No .env file found")
+	}
+}
+
 func main() {
-	google.Authentication()
+	authentication.Authentication()
 }
