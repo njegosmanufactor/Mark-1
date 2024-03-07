@@ -13,15 +13,11 @@
 <div class="container">
     <div class="jumbotron text-center text-success">
         <h1>Authentication</h1>
-        <label>E-mail:</label>
-        <input></input>
-        <br>
-        <label>Password:</label>
-        <input></input>
-        <br>
-        <a href="/auth/google" class="btn btn-success"><span class="fa fa-google"></span> Sign In with Google</a>
-        <a href="register.html" class="btn btn-success">Register</a> <!-- Updated href attribute -->
-        <a href="success.html" class="btn btn-success">Sign Up</a>
+        <form action="/register" method="post">
+            <input type="text" name="username" placeholder="Username">
+            <input type="password" name="password" placeholder="Password">
+            <button type="submit">Register</button>
+        </form>
     </div>
 </div>
 </body>

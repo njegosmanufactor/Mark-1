@@ -1,9 +1,9 @@
 package main
 
 import (
-	google "MongoGoogle/GoogleOAuth2"
+	google "MongoGoogle/LoginRegister"
 )
 
 func main() {
-	google.GoogleLogin()
+	google.Authentication()
 }
