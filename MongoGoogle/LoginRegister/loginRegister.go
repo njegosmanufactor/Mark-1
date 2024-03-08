@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
-	//"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,39 +16,9 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 
+	userType "MongoGoogle/Model"
 	data "MongoGoogle/MongoDB"
 )
-
-type GitHubData struct {
-	Login             string  `json:"login"`
-	Id                float64 `json:"id"`
-	NodeId            string  `json:"node_id"`
-	AvatarUrl         string  `json:"avatar_url"`
-	GravatarId        string  `json:"gravatar_id"`
-	Url               string  `json:"url"`
-	HtmlUrl           string  `json:"html_url"`
-	FollowersUrl      string  `json:"followers_url"`
-	FollowingUrl      string  `json:"following_url"`
-	GistsUrl          string  `json:"gists_url"`
-	StarredUrl        string  `json:"starred_url"`
-	SubscriptionsUrl  string  `json:"subscriptions_url"`
-	OrganizationsUrl  string  `json:"organizations_url"`
-	ReposUrl          string  `json:"repos_url"`
-	EventsUrl         string  `json:"events_url"`
-	RecievedEventsUrl string  `json:"recieved_events_url"`
-	Type              string  `json:"type"`
-	Name              string  `json:"name"`
-	Company           string  `json:"company"`
-	Blog              string  `json:"blog"`
-	Location          string  `json:"location"`
-	Email             string  `json:"email"`
-	Hireable          bool    `json:"hireable"`
-	Bio               string  `json:"bio"`
-	TwitterUsername   string  `json:"twitter_username"`
-	PublicRepos       int     `json:"public_repos"`
-	PublicGists       int     `json:"public_gists"`
-	Followers         int     `json:"followers"`
-}
 
 func Authentication() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
@@ -89,7 +57,8 @@ func Authentication() {
 
 	/////////////////////////////////////////////    GOOGLE    /////////////////////////////////////////////////////////////////////
 	mux.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
-		user, err := gothic.CompleteUserAuth(res, req)
+		tmpUser, err := gothic.CompleteUserAuth(res, req)
+		user := addUserRole(&tmpUser)
 		if err != nil {
 			fmt.Fprintln(res, err)
 			return
@@ -117,7 +86,7 @@ func Authentication() {
 
 	// Route where the authenticated user is redirected to
 	mux.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
-		var nill GitHubData
+		var nill userType.GitHubData
 		loggedinHandler(w, r, nill)
 	})
 	///////////////////////////////////////////////////   APPLICATION   ////////////////////////////////////////////////////////////////
@@ -177,7 +146,7 @@ func Authentication() {
 	log.Fatal(err)
 }
 
-func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData GitHubData) {
+func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType.GitHubData) {
 	if githubData.Id == 0 {
 		// Unauthorized users get an unauthorized message
 		fmt.Fprintf(w, "Unauthorised")
@@ -216,7 +185,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Function that retrieves users data from github profile
-func getGithubData(accessToken string) GitHubData {
+func getGithubData(accessToken string) userType.GitHubData {
 	req, reqerr := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if reqerr != nil {
 		log.Panic("API Request creation failed")
@@ -232,10 +201,13 @@ func getGithubData(accessToken string) GitHubData {
 
 	respbody, _ := ioutil.ReadAll(resp.Body)
 
-	var data GitHubData
+	var data userType.GitHubData
 	err := json.Unmarshal(respbody, &data)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON:", err)
+	}
+	if data.Role == "" {
+		data.Role = "User"
 	}
 	return data
 }
@@ -296,4 +268,28 @@ func getGithubClientSecret() string {
 	}
 
 	return githubClientSecret
+}
+
+func addUserRole(user *goth.User) userType.GoogleData {
+	var roleUser userType.GoogleData
+
+	roleUser.AccessToken = user.AccessToken
+	roleUser.AccessTokenSecret = user.AccessTokenSecret
+	roleUser.AvatarURL = user.AvatarURL
+	roleUser.Description = user.Description
+	roleUser.Email = user.Email
+	roleUser.ExpiresAt = user.ExpiresAt
+	roleUser.FirstName = user.FirstName
+	roleUser.IDToken = user.IDToken
+	roleUser.LastName = user.LastName
+	roleUser.Location = user.Location
+	roleUser.Name = user.Name
+	roleUser.NickName = user.NickName
+	roleUser.Provider = user.Provider
+	roleUser.RawData = user.RawData
+	roleUser.RefreshToken = user.RefreshToken
+	roleUser.UserID = user.UserID
+	roleUser.Role = "User"
+
+	return roleUser
 }
