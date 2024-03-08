@@ -90,7 +90,7 @@ func Authentication() {
 		loggedinHandler(w, r, nill)
 	})
 	///////////////////////////////////////////////////   APPLICATION   ////////////////////////////////////////////////////////////////
-	//Registracija aplikacija
+	//Registrtion for Application users
 	mux.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
 		t, err := template.ParseFiles("LoginRegister/pages/register.html")
 		if err != nil {
@@ -100,30 +100,29 @@ func Authentication() {
 		t.Execute(res, false)
 	})
 
-	//Prijava aplikacija
+	//Login for Application users
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// Čitanje podataka iz forme
+		// Reading from html
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		// Poziv funkcije za proveru korisnika
+		// Validation User for Application
 
 		var valid bool = data.ValidUser(username, password)
 		if valid {
-			fmt.Fprintf(w, "Successful") // Poruka uspjeha
+			fmt.Fprintf(w, "Successful")
 		} else {
-			// Poruka neuspjeha
 			fmt.Fprintf(w, "Incorrect username or password")
 		}
 
 	})
 
-	// Obrada podataka iz forme kada je ruta /register
+	//Registration
 	mux.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
 
 		if req.Method != http.MethodPost {
@@ -131,11 +130,10 @@ func Authentication() {
 			return
 		}
 
-		// Čitanje podataka iz forme
 		username := req.FormValue("username")
 		password := req.FormValue("password")
 
-		// Poziv funkcije za čuvanje korisnika
+		//Save user
 		data.SaveUserApplication(username, password)
 	})
 
@@ -153,15 +151,12 @@ func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 		return
 	}
 
-	// Provjera da li korisničko ime postoji u bazi
-
+	// Validate user Username in database
 	if data.ValidUsername(githubData.Username) {
-		// Korisničko ime postoji, prikazujemo poruku
 		fmt.Fprintf(w, "Git Account Successfully Logged In")
 	} else {
-		// Korisničko ime ne postoji, preusmjeravamo korisnika na Google prijavu
 		data.SaveUserOther(githubData.Username)
-		t, _ := template.ParseFiles("LoginRegister/pages/success.html") //NE ISPISE SE SUCCES.HTML !!!!!!!!!!
+		t, _ := template.ParseFiles("LoginRegister/pages/success.html")
 		t.Execute(w, githubData)
 	}
 }
