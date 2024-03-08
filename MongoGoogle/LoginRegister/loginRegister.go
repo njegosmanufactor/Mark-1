@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
+	//"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"text/template"
-
-	"log"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -19,6 +20,37 @@ import (
 
 	data "MongoGoogle/MongoDB"
 )
+
+type GitHubData struct {
+	Login             string  `json:"login"`
+	Id                float64 `json:"id"`
+	NodeId            string  `json:"node_id"`
+	AvatarUrl         string  `json:"avatar_url"`
+	GravatarId        string  `json:"gravatar_id"`
+	Url               string  `json:"url"`
+	HtmlUrl           string  `json:"html_url"`
+	FollowersUrl      string  `json:"followers_url"`
+	FollowingUrl      string  `json:"following_url"`
+	GistsUrl          string  `json:"gists_url"`
+	StarredUrl        string  `json:"starred_url"`
+	SubscriptionsUrl  string  `json:"subscriptions_url"`
+	OrganizationsUrl  string  `json:"organizations_url"`
+	ReposUrl          string  `json:"repos_url"`
+	EventsUrl         string  `json:"events_url"`
+	RecievedEventsUrl string  `json:"recieved_events_url"`
+	Type              string  `json:"type"`
+	Name              string  `json:"name"`
+	Company           string  `json:"company"`
+	Blog              string  `json:"blog"`
+	Location          string  `json:"location"`
+	Email             string  `json:"email"`
+	Hireable          bool    `json:"hireable"`
+	Bio               string  `json:"bio"`
+	TwitterUsername   string  `json:"twitter_username"`
+	PublicRepos       int     `json:"public_repos"`
+	PublicGists       int     `json:"public_gists"`
+	Followers         int     `json:"followers"`
+}
 
 func Authentication() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
@@ -62,6 +94,10 @@ func Authentication() {
 			t, _ := template.ParseFiles("LoginRegister/pages/success.html")
 			t.Execute(res, user)
 		}
+		// In success.html file or any front display we can select what we want to display.
+		// user is instance of goth.User class of which fields can be found in documentation.
+		t, _ := template.ParseFiles("LoginRegister/pages/success.html")
+		t.Execute(res, user)
 	})
 
 	mux.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
@@ -85,7 +121,8 @@ func Authentication() {
 
 	// Route where the authenticated user is redirected to
 	mux.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
-		loggedinHandler(w, r, "")
+		var nill GitHubData
+		loggedinHandler(w, r, nill)
 	})
 
 	mux.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
@@ -142,22 +179,15 @@ func Authentication() {
 	log.Fatal(err)
 }
 
-func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData string) {
-	if githubData == "" {
+func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData GitHubData) {
+	if githubData.Id == 0 {
 		// Unauthorized users get an unauthorized message
-		fmt.Fprintf(w, "UNAUTHORIZED!")
+		fmt.Fprintf(w, "Unauthorised")
 		return
 	}
 
-	w.Header().Set("Content-type", "application/json")
-
-	var prettyJSON bytes.Buffer
-	parserr := json.Indent(&prettyJSON, []byte(githubData), "", "\t")
-	if parserr != nil {
-		log.Panic("JSON parse error")
-	}
-
-	fmt.Fprintf(w, string(prettyJSON.Bytes()))
+	t, _ := template.ParseFiles("LoginRegister/pages/success.html")
+	t.Execute(w, githubData)
 }
 
 func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +209,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Function that retrieves users data from github profile
-func getGithubData(accessToken string) string {
+func getGithubData(accessToken string) GitHubData {
 	req, reqerr := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if reqerr != nil {
 		log.Panic("API Request creation failed")
@@ -195,7 +225,12 @@ func getGithubData(accessToken string) string {
 
 	respbody, _ := ioutil.ReadAll(resp.Body)
 
-	return string(respbody)
+	var data GitHubData
+	err := json.Unmarshal(respbody, &data)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+	}
+	return data
 }
 
 // Function that calls Github api for access token generation
