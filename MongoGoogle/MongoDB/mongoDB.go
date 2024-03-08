@@ -25,7 +25,7 @@ type ApplicationUser struct {
 // save user into database
 func SaveUserOther(username string) {
 	// Setting up the URL to connect to the MongoDB server
-	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
 	// Setting up client options for connection
 	clientOptions := options.Client().ApplyURI(uri)
@@ -60,7 +60,7 @@ func SaveUserOther(username string) {
 
 func SaveUserApplication(username string, password string) {
 	// Setting up the URL to connect to the MongoDB server
-	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
 	// Setting up client options for connection
 	clientOptions := options.Client().ApplyURI(uri)
@@ -95,7 +95,7 @@ func SaveUserApplication(username string, password string) {
 }
 
 func ValidUser(username string, password string) bool {
-	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
@@ -121,7 +121,7 @@ func ValidUser(username string, password string) bool {
 }
 
 func ValidUsername(username string) bool {
-	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
