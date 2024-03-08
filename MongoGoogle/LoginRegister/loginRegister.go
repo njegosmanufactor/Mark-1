@@ -155,12 +155,12 @@ func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 
 	// Provjera da li korisničko ime postoji u bazi
 
-	if data.ValidUsername(githubData.Login) {
+	if data.ValidUsername(githubData.Username) {
 		// Korisničko ime postoji, prikazujemo poruku
 		fmt.Fprintf(w, "Git Account Successfully Logged In")
 	} else {
 		// Korisničko ime ne postoji, preusmjeravamo korisnika na Google prijavu
-		data.SaveUserOther(githubData.Login)
+		data.SaveUserOther(githubData.Username)
 		t, _ := template.ParseFiles("LoginRegister/pages/success.html") //NE ISPISE SE SUCCES.HTML !!!!!!!!!!
 		t.Execute(w, githubData)
 	}
