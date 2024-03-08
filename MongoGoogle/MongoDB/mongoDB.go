@@ -11,11 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type GoogleUser struct {
+type OtherUser struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty"`
 	Username string             `bson:"Username"`
-	Name     string             `bson:"Name"`
-	Surname  string             `bson:"Surname"`
 }
 
 type ApplicationUser struct {
@@ -25,7 +23,7 @@ type ApplicationUser struct {
 }
 
 // save user into database
-func SaveUserGoogle(username string, name string, surname string) {
+func SaveUserOther(username string) {
 	// Setting up the URL to connect to the MongoDB server
 	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
@@ -47,10 +45,8 @@ func SaveUserGoogle(username string, name string, surname string) {
 	collection := client.Database("UserDatabase").Collection("Users")
 
 	// Creating user instance
-	user := GoogleUser{
+	user := OtherUser{
 		Username: username,
-		Name:     name,
-		Surname:  surname,
 	}
 
 	// Adding user to the database
@@ -113,6 +109,32 @@ func ValidUser(username string, password string) bool {
 
 	collection := client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Username": username, "Password": password}
+	var result ApplicationUser
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false
+		}
+		log.Fatal(err)
+	}
+	return true
+}
+
+func ValidUsername(username string) bool {
+	uri := "mongodb+srv://nikolakojic:Bombarder535@userdatabase.y6rrj9g.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	collection := client.Database("UserDatabase").Collection("Users")
+	filter := bson.M{"Username": username}
 	var result ApplicationUser
 	err = collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {

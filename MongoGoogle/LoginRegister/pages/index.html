@@ -9,6 +9,29 @@
         body { padding-top:70px; }
     </style>
 </head>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.querySelector('form');
+        var messageLabel = document.getElementById('login-message');
+    
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            var formData = new FormData(form);
+    
+            fetch('/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(message => {
+                messageLabel.textContent = message; // Postavljanje poruke
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
 <body>
 <div class="container">
     <div class="jumbotron text-center text-success">
@@ -17,6 +40,7 @@
             <input type="text" name="username" placeholder="Username">
             <input type="password" name="password" placeholder="Password">
             <button type="submit">Login</button>
+            <label id="login-message" style="color: red;"></label>
         </form>
         <br>
         <a href="/auth/google" class="btn btn-success"><span class="fa fa-google"></span> Sign In with Google</a>
