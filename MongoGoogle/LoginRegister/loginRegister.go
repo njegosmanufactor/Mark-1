@@ -45,25 +45,6 @@ func Authentication() {
 	)
 
 	mux := mux.NewRouter()
-	mux.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
-		tmpUser, err := gothic.CompleteUserAuth(res, req)
-		user := addUserRole(&tmpUser)
-		if err != nil {
-			fmt.Fprintln(res, err)
-			return
-		}
-
-		// Provjera da li korisničko ime postoji u bazi
-		if data.ValidUsername(user.Email) {
-			// Korisničko ime postoji, prikazujemo poruku
-			fmt.Fprintf(res, "Google Account Successfully Logged In")
-		} else {
-			// Korisničko ime ne postoji, preusmjeravamo korisnika na Google prijavu
-			data.SaveUserOther(user.Email)
-			t, _ := template.ParseFiles("LoginRegister/pages/success.html")
-			t.Execute(res, user)
-		}
-	})
 
 	mux.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
 		gothic.BeginAuthHandler(res, req)
@@ -73,6 +54,25 @@ func Authentication() {
 		t, _ := template.ParseFiles("LoginRegister/pages/index.html")
 		t.Execute(res, false)
 	})
+
+	/////////////////////////////////////////////    GOOGLE    /////////////////////////////////////////////////////////////////////
+	mux.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
+		tmpUser, err := gothic.CompleteUserAuth(res, req)
+		user := addUserRole(&tmpUser)
+		if err != nil {
+			fmt.Fprintln(res, err)
+			return
+		}
+
+		if data.ValidUsername(user.Email) {
+			fmt.Fprintf(res, "Google Account Successfully Logged In")
+		} else {
+			data.SaveUserOther(user.Email)
+			t, _ := template.ParseFiles("LoginRegister/pages/success.html")
+			t.Execute(res, user)
+		}
+	})
+	//////////////////////////////////////////////////    GIT    /////////////////////////////////////////////////////////////////////
 
 	// Login route
 	mux.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,8 @@ func Authentication() {
 		var nill userType.GitHubData
 		loggedinHandler(w, r, nill)
 	})
-
+	///////////////////////////////////////////////////   APPLICATION   ////////////////////////////////////////////////////////////////
+	//Registracija aplikacija
 	mux.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
 		t, err := template.ParseFiles("LoginRegister/pages/register.html")
 		if err != nil {
@@ -99,6 +100,7 @@ func Authentication() {
 		t.Execute(res, false)
 	})
 
+	//Prijava aplikacija
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST method allowed", http.StatusMethodNotAllowed)
@@ -151,8 +153,17 @@ func loggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 		return
 	}
 
-	t, _ := template.ParseFiles("LoginRegister/pages/success.html")
-	t.Execute(w, githubData)
+	// Provjera da li korisničko ime postoji u bazi
+
+	if data.ValidUsername(githubData.Login) {
+		// Korisničko ime postoji, prikazujemo poruku
+		fmt.Fprintf(w, "Git Account Successfully Logged In")
+	} else {
+		// Korisničko ime ne postoji, preusmjeravamo korisnika na Google prijavu
+		data.SaveUserOther(githubData.Login)
+		t, _ := template.ParseFiles("LoginRegister/pages/success.html") //NE ISPISE SE SUCCES.HTML !!!!!!!!!!
+		t.Execute(w, githubData)
+	}
 }
 
 func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
