@@ -31,7 +31,7 @@ type GitHubData struct {
 	PublicRepos       int     `json:"public_repos"`
 	PublicGists       int     `json:"public_gists"`
 	Followers         int     `json:"followers"`
-	Role              string
+	Role              string  `json:"role"`
 }
 type GoogleData struct {
 	RawData           map[string]interface{}

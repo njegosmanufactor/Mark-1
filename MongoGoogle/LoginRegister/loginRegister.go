@@ -130,11 +130,20 @@ func Authentication() {
 			return
 		}
 
+		email := req.FormValue("email")
+		firstName := req.FormValue("firstName")
+		lastName := req.FormValue("lastName")
+		phone := req.FormValue("phone")
+		date := req.FormValue("date")
 		username := req.FormValue("username")
 		password := req.FormValue("password")
+		company := req.FormValue("company")
+		country := req.FormValue("country")
+		city := req.FormValue("city")
+		address := req.FormValue("address")
 
 		//Save user
-		data.SaveUserApplication(username, password)
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, company, country, city, address)
 	})
 
 	// Listen and serve on port 3000

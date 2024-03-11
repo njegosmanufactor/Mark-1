@@ -17,9 +17,18 @@ type OtherUser struct {
 }
 
 type ApplicationUser struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Username string             `bson:"Username"`
-	Password string             `bson:"Password"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	Email       string             `bson:"Email"`
+	FirstName   string             `bson:"FirstName"`
+	LastName    string             `bson:"LastName"`
+	Phone       string             `bson:"Phone"`
+	DateOfBirth string             `bson:"DateOfBirth"`
+	Username    string             `bson:"Username"`
+	Password    string             `bson:"Password"`
+	Company     string             `bson:"Company"`
+	Country     string             `bson:"Country"`
+	City        string             `bson:"City"`
+	Address     string             `bson:"Address"`
 }
 
 // save user into database
@@ -58,7 +67,7 @@ func SaveUserOther(username string) {
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
-func SaveUserApplication(username string, password string) {
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, company string, country string, city string, address string) {
 	// Setting up the URL to connect to the MongoDB server
 	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
@@ -81,8 +90,17 @@ func SaveUserApplication(username string, password string) {
 
 	// Creating user instance
 	user := ApplicationUser{
-		Username: username,
-		Password: password,
+		Email:       email,
+		FirstName:   firstName,
+		LastName:    lastName,
+		Phone:       phone,
+		DateOfBirth: date,
+		Username:    username,
+		Password:    password,
+		Company:     company,
+		Country:     country,
+		City:        city,
+		Address:     address,
 	}
 
 	// Adding user to the database
