@@ -1,40 +1,50 @@
 package ApplicationService
 
 import (
-	"crypto/tls"
+	"bytes"
 	"fmt"
+	"net/smtp"
 	"strings"
-
-	gomail "gopkg.in/mail.v2"
+	"text/template"
 )
 
 func SendMail(email string) {
-	m := gomail.NewMessage()
+	// Sender data.
+	from := "nemanja.ranitovic@manufactoryteam.io"
+	password := "cwcn trol loos svbr"
 
-	// Set E-Mail sender
-	m.SetHeader("From", "nemanja.ranitovic@manufactoryteam.io")
+	// Receiver email address.
+	to := []string{
+		email,
+	}
 
-	// Set E-Mail receivers
-	m.SetHeader("To", email)
+	// smtp server configuration.
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
 
-	// Set E-Mail subject
-	m.SetHeader("Subject", "Account verification")
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	t, _ := template.ParseFiles("LoginRegister/pages/MailTemplate.html")
+
+	var body bytes.Buffer
+
+	mimeHeaders := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	body.Write([]byte(fmt.Sprintf("Subject: Account verification \n%s\n\n", mimeHeaders)))
 	link := "http://localhost:3000/verify/{email}"
 	link = strings.Replace(link, "{email}", email, 1)
+	t.Execute(&body, struct {
+		Message string
+	}{
+		Message: link,
+	})
 
-	// Set E-Mail body. You can set plain text or html with text/html
-	m.SetBody("text/plain", link)
-
-	// Settings for SMTP server
-	d := gomail.NewDialer("smtp.gmail.com", 587, "nemanja.ranitovic@manufactoryteam.io", "cwcn trol loos svbr")
-
-	// This is only needed when SSL/TLS certificate is not valid on server.
-	// In production this should be set to false.
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-
-	// Now send E-Mail
-	if err := d.DialAndSend(m); err != nil {
+	// Sending email.
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
+	if err != nil {
 		fmt.Println(err)
-		panic(err)
+		return
 	}
+	fmt.Println("Email Sent!")
+
 }

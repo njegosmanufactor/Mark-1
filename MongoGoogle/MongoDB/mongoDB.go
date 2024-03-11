@@ -29,7 +29,7 @@ type ApplicationUser struct {
 	Country     string             `bson:"Country"`
 	City        string             `bson:"City"`
 	Address     string             `bson:"Address"`
-	Verified    bool
+	Verified    bool               `bson:"Verified"`
 }
 
 // save user into database
