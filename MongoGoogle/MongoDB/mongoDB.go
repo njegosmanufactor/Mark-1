@@ -29,6 +29,7 @@ type ApplicationUser struct {
 	Country     string             `bson:"Country"`
 	City        string             `bson:"City"`
 	Address     string             `bson:"Address"`
+	Verified    bool
 }
 
 // save user into database
@@ -161,5 +162,28 @@ func ValidUsername(username string) bool {
 		}
 		log.Fatal(err)
 	}
+	return true
+}
+func VerifyUser(email string) bool {
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	collection := client.Database("UserDatabase").Collection("Users")
+	filter := bson.M{"Email": email}
+	update := bson.M{"$set": bson.M{"Verified": true}}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return false
+	}
+
 	return true
 }

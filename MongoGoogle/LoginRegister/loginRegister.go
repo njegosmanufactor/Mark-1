@@ -16,6 +16,7 @@ import (
 	gitService "MongoGoogle/GitService"
 	googleService "MongoGoogle/GoogleService"
 	userType "MongoGoogle/Model"
+	db "MongoGoogle/MongoDB"
 )
 
 func Authentication() {
@@ -42,41 +43,41 @@ func Authentication() {
 		google.New("261473284823-sh61p2obchbmdrq9pucc7s5oo9c8l98j.apps.googleusercontent.com", "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", "http://localhost:3000/auth/google/callback", "email", "profile"),
 	)
 
-	mux := mux.NewRouter()
+	r := mux.NewRouter()
 
 	//Homepage display on path "https://localhost:3000"
-	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		t, _ := template.ParseFiles("LoginRegister/pages/index.html")
 		t.Execute(res, false)
 	})
 
 	//Using google OAuth2 to authenticate user
-	mux.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
 		gothic.BeginAuthHandler(res, req)
 	})
 
-	mux.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
 		googleService.CompleteGoogleUserAuthentication(res, req)
 	})
 
 	//Github authentication paths
-	mux.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
 		gitService.GithubLoginHandler(w, r)
 	})
 
 	// Github callback
-	mux.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
 		gitService.GithubCallbackHandler(w, r)
 	})
 
 	// Route where the authenticated user is redirected to
-	mux.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
 		var nill userType.GitHubData
 		gitService.LoggedinHandler(w, r, nill)
 	})
 
 	//Register page display
-	mux.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
 		t, err := template.ParseFiles("LoginRegister/pages/register.html")
 		if err != nil {
 			fmt.Fprintf(res, "Error parsing template: %v", err)
@@ -86,19 +87,27 @@ func Authentication() {
 	})
 
 	//Our service that serves login functionality
-	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		applicationService.ApplicationLogin(w, r)
 	})
 
 	//Our service that serves registration functionality
-	mux.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
-
+	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
 		applicationService.ApplicationRegister(res, req)
+	})
+
+	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
+
+		vars := mux.Vars(req)
+		email := vars["email"]
+		if db.VerifyUser(email) {
+			fmt.Fprintf(res, email)
+		}
 
 	})
 
 	//Mux router listens for requests on port : 3000
 	fmt.Println("[ UP ON PORT 3000 ]")
-	err := http.ListenAndServe(":3000", mux)
+	err := http.ListenAndServe(":3000", r)
 	log.Fatal(err)
 }

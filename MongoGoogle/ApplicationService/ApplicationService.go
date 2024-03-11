@@ -2,6 +2,7 @@ package ApplicationService
 
 import (
 	data "MongoGoogle/MongoDB"
+
 	"fmt"
 	"net/http"
 )
@@ -27,8 +28,9 @@ func ApplicationRegister(res http.ResponseWriter, req *http.Request) {
 
 	//Save user
 	data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, company, country, city, address)
-	//
 
+	//morace kojic da doda verified polje u model korisnika
+	SendMail(email)
 }
 
 func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
