@@ -21,7 +21,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 	}
 
 	// Validate user Username in database
-	if data.ValidUsername(githubData.Username) {
+	if data.ValidEmail(githubData.Username) {
 		fmt.Fprintf(w, "Git Account Successfully Logged In")
 	} else {
 		data.SaveUserOther(githubData.Username)

@@ -21,7 +21,7 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if data.ValidUsername(user.Email) {
+	if data.ValidEmail(user.Email) {
 		fmt.Fprintf(res, "Google Account Successfully Logged In")
 	} else {
 		data.SaveUserOther(user.Email)
