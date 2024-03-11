@@ -191,3 +191,65 @@ func VerifyUser(email string) bool {
 
 	return true
 }
+
+func SetUserRoleOwner(email string) error {
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Povezivanje sa kolekcijom "Users"
+	collection := client.Database("UserDatabase").Collection("Users")
+
+	// Kreiranje filtera koji odgovara korisniku sa datim korisničkim imenom
+	filter := bson.M{"Email": email}
+
+	// Kreiranje novih vrednosti koje želimo da ažuriramo
+	update := bson.M{"$set": bson.M{"Role": "Owner"}}
+
+	// Ažuriranje dokumenta u bazi
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func GetUserData(email string) (ApplicationUser, error) {
+	// Povezivanje sa MongoDB bazom
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return ApplicationUser{}, err
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Povezivanje sa kolekcijom "Users"
+	collection := client.Database("UserDatabase").Collection("Users")
+
+	// Kreiranje filtera koji odgovara korisniku sa datim mejlom
+	filter := bson.M{"Email": email}
+
+	// Definisanje strukture za rezultat
+	var result ApplicationUser
+
+	// Dohvatanje korisničkih podataka iz baze
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return ApplicationUser{}, err
+	}
+
+	return result, nil
+}
