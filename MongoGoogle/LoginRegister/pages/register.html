@@ -14,8 +14,26 @@
     <div class="jumbotron text-center text-success">
         <h1>Authentication</h1>
         <form action="/register" method="post">
+            <input type="email" name="email" placeholder="E-mail">
+            <input type="firstName" name="firstName" placeholder="First Name">
+            <input type="lastName" name="lastName" placeholder="Last Name">
+            <input type="phone" name="phone" placeholder="Phone">
+            <br>
+            <Label>Date of birth</Label>
+            <input type="date" id="date" name="date">
+            <br>
             <input type="text" name="username" placeholder="Username">
             <input type="password" name="password" placeholder="Password">
+            <input type="confirmPassword" name="confirmPassword" placeholder="Confirm Password">
+            <br>
+            <input type="checkbox" id="unlock" onchange="toggleForm()">
+            <label for="unlock">Otključaj formu</label>
+            <br>
+            <input type="text" name="company" placeholder="Company">
+            <input type="text" name="country" placeholder="Country">
+            <input type="text" name="city" placeholder="City">
+            <input type="text" name="address" placeholder="Address">
+            <br>
             <button type="submit">Register</button>
         </form>
     </div>
