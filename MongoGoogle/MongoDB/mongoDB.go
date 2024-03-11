@@ -139,10 +139,14 @@ func ValidUser(username string, password string) bool {
 	return true
 }
 
+// please github do not ignore this function
 func ValidUsername(username string) bool {
+
+	//cc//
 	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOptions)
+	//cc//
 	if err != nil {
 		log.Fatal(err)
 	}
