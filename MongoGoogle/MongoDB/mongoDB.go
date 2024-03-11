@@ -12,8 +12,8 @@ import (
 )
 
 type OtherUser struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Username string             `bson:"Username"`
+	ID    primitive.ObjectID `bson:"_id,omitempty"`
+	Email string             `bson:"Email"`
 }
 
 type ApplicationUser struct {
@@ -29,10 +29,12 @@ type ApplicationUser struct {
 	Country     string             `bson:"Country"`
 	City        string             `bson:"City"`
 	Address     string             `bson:"Address"`
+	Role        string             `bson:"Role"`
+	Verified    bool               `bson:"Verified"`
 }
 
 // save user into database
-func SaveUserOther(username string) {
+func SaveUserOther(email string) {
 	// Setting up the URL to connect to the MongoDB server
 	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
@@ -55,7 +57,7 @@ func SaveUserOther(username string) {
 
 	// Creating user instance
 	user := OtherUser{
-		Username: username,
+		Email: email,
 	}
 
 	// Adding user to the database
@@ -101,6 +103,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		Country:     country,
 		City:        city,
 		Address:     address,
+		Role:        "User",
 	}
 
 	// Adding user to the database
@@ -112,7 +115,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
-func ValidUser(username string, password string) bool {
+func ValidUser(email string, password string) bool {
 	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOptions)
@@ -126,7 +129,33 @@ func ValidUser(username string, password string) bool {
 	}()
 
 	collection := client.Database("UserDatabase").Collection("Users")
-	filter := bson.M{"Username": username, "Password": password}
+	filter := bson.M{"Email": email, "Password": password}
+	var result ApplicationUser
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false
+		}
+		log.Fatal(err)
+	}
+	return true
+}
+
+func ValidEmail(email string) bool {
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	collection := client.Database("UserDatabase").Collection("Users")
+	filter := bson.M{"Email": email}
 	var result ApplicationUser
 	err = collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
@@ -162,4 +191,67 @@ func ValidUsername(username string) bool {
 		log.Fatal(err)
 	}
 	return true
+}
+
+func SetUserRoleOwner(email string) error {
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Povezivanje sa kolekcijom "Users"
+	collection := client.Database("UserDatabase").Collection("Users")
+
+	// Kreiranje filtera koji odgovara korisniku sa datim korisničkim imenom
+	filter := bson.M{"Email": email}
+
+	// Kreiranje novih vrednosti koje želimo da ažuriramo
+	update := bson.M{"$set": bson.M{"Role": "Owner"}}
+
+	// Ažuriranje dokumenta u bazi
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetUserData(email string) (ApplicationUser, error) {
+	// Povezivanje sa MongoDB bazom
+	uri := "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return ApplicationUser{}, err
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Povezivanje sa kolekcijom "Users"
+	collection := client.Database("UserDatabase").Collection("Users")
+
+	// Kreiranje filtera koji odgovara korisniku sa datim mejlom
+	filter := bson.M{"Email": email}
+
+	// Definisanje strukture za rezultat
+	var result ApplicationUser
+
+	// Dohvatanje korisničkih podataka iz baze
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return ApplicationUser{}, err
+	}
+
+	return result, nil
 }

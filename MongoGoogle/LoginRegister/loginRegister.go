@@ -16,7 +16,6 @@ import (
 	gitService "MongoGoogle/GitService"
 	googleService "MongoGoogle/GoogleService"
 	userType "MongoGoogle/Model"
-	data "MongoGoogle/MongoDB"
 )
 
 func Authentication() {
@@ -93,26 +92,7 @@ func Authentication() {
 
 	//Our service that serves registration functionality
 	mux.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
-
-		if req.Method != http.MethodPost {
-			http.Error(res, "Only POST method allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		email := req.FormValue("email")
-		firstName := req.FormValue("firstName")
-		lastName := req.FormValue("lastName")
-		phone := req.FormValue("phone")
-		date := req.FormValue("date")
-		username := req.FormValue("username")
-		password := req.FormValue("password")
-		company := req.FormValue("company")
-		country := req.FormValue("country")
-		city := req.FormValue("city")
-		address := req.FormValue("address")
-
-		//Save user
-		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, company, country, city, address)
+		applicationService.ApplicationRegister(res, req)
 	})
 
 	//Mux router listens for requests on port : 3000

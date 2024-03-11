@@ -1,9 +1,8 @@
-<!-- pages/index.html -->
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Google Sign In</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"> <!-- load bulma css -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"> <!-- load bootstrap css -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"> <!-- load fontawesome -->
     <style>
         body { padding-top:70px; }
@@ -13,30 +12,80 @@
 <div class="container">
     <div class="jumbotron text-center text-success">
         <h1>Authentication</h1>
-        <form action="/register" method="post">
-            <input type="email" name="email" placeholder="E-mail">
-            <input type="firstName" name="firstName" placeholder="First Name">
-            <input type="lastName" name="lastName" placeholder="Last Name">
-            <input type="phone" name="phone" placeholder="Phone">
+        <form action="/register" method="post" id="registrationForm" onsubmit="return validateForm()">
+            <input type="email" name="email" id="email" placeholder="E-mail">
+            <input type="text" name="firstName" id="firstName" placeholder="First Name">
+            <input type="text" name="lastName" id="lastName" placeholder="Last Name">
+            <div>
+                <select id="countryCode" name="countryCode">
+                    <option value="+381">+381 (Serbia)</option>
+                    <option value="+1">+1 (USA)</option>
+                    <!-- Add more options for other countries -->
+                </select>
+                <input type="text" name="phone" id="phoneNumber" placeholder="Phone">
+            </div>
             <br>
             <Label>Date of birth</Label>
-            <input type="date" id="date" name="date">
+            <input type="date" id="dateOfBirth" name="date" max="<?php echo date('Y-m-d'); ?>">
             <br>
-            <input type="text" name="username" placeholder="Username">
-            <input type="password" name="password" placeholder="Password">
-            <input type="confirmPassword" name="confirmPassword" placeholder="Confirm Password">
+            <input type="text" name="username" id="username" placeholder="Username">
+            <input type="password" name="password" id="password" placeholder="Password">
+            <input type="password" name="confirmPassword" id="confirmPassword" placeholder="Confirm Password">
             <br>
-            <input type="checkbox" id="unlock" onchange="toggleForm()">
-            <label for="unlock">Otključaj formu</label>
+            <input type="checkbox" id="companyCheck" onchange="toggleCompanyFields()">
+            <label for="companyCheck">I have a company</label>
             <br>
-            <input type="text" name="company" placeholder="Company">
-            <input type="text" name="country" placeholder="Country">
-            <input type="text" name="city" placeholder="City">
-            <input type="text" name="address" placeholder="Address">
+            <div id="companyFields" style="display: none;">
+                <input type="text" name="company" id="company" placeholder="Company">
+                <input type="text" name="companyCountry" id="companyCountry" placeholder="Country">
+                <input type="text" name="companyCity" id="companyCity" placeholder="City">
+                <input type="text" name="companyAddress" id="companyAddress" placeholder="Address">
+            </div>
             <br>
             <button type="submit">Register</button>
+            <label id="registerMessage" style="color: red;"></label>
         </form>
     </div>
 </div>
+
+<script>
+    // Function to toggle company fields visibility based on checkbox
+    function toggleCompanyFields() {
+        var checkBox = document.getElementById("companyCheck");
+        var companyFields = document.getElementById("companyFields");
+        if (checkBox.checked) {
+            companyFields.style.display = "block";
+        } else {
+            companyFields.style.display = "none";
+        }
+    }
+
+    // Function to validate form before submission
+    function validateForm() {
+        var email = document.getElementById("email").value;
+        var firstName = document.getElementById("firstName").value;
+        var lastName = document.getElementById("lastName").value;
+        var phone = document.getElementById("phoneNumber").value;
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+        var confirmPassword = document.getElementById("confirmPassword").value;
+
+        if (email === "" || firstName === "" || lastName === "" || phone === "" || username === "" || password === "" || confirmPassword === "") {
+            document.getElementById("registerMessage").innerText = "All fields are required.";
+            return false;
+        }
+
+        if (password !== confirmPassword) {
+            document.getElementById("registerMessage").innerText = "Password and Confirm Password must match.";
+            return false;
+        }
+
+        return true;
+    }
+
+    // Function to prevent selection of future dates in date of birth field
+    var currentDate = new Date().toISOString().split('T')[0];
+    document.getElementById("dateOfBirth").setAttribute("max", currentDate);
+</script>
 </body>
 </html>
