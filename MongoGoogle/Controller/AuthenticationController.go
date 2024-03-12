@@ -1,4 +1,4 @@
-package LoginRegister
+package Controller
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	gitService "MongoGoogle/GitService"
 	googleService "MongoGoogle/GoogleService"
 	userType "MongoGoogle/Model"
-	db "MongoGoogle/MongoDB"
+	db "MongoGoogle/Repository"
 )
 
 func Authentication() {

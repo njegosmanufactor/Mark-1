@@ -1,7 +1,7 @@
 package ApplicationService
 
 import (
-	data "MongoGoogle/MongoDB"
+	data "MongoGoogle/Repository"
 
 	"fmt"
 	"net/http"
@@ -56,7 +56,7 @@ func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if user.Company != "" {
-			data.SetUserRoleOwner(email)
+			data.SetUserRoleOwner(email) //move to future function
 		}
 	} else {
 		fmt.Fprintf(w, "Incorrect email or password")

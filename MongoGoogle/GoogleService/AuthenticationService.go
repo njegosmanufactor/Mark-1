@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"text/template"
 
-	data "MongoGoogle/MongoDB"
+	data "MongoGoogle/Repository"
 
 	userType "MongoGoogle/Model"
 

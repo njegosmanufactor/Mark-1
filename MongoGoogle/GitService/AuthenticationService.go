@@ -2,7 +2,7 @@ package GitService
 
 import (
 	userType "MongoGoogle/Model"
-	data "MongoGoogle/MongoDB"
+	data "MongoGoogle/Repository"
 	"bytes"
 	"encoding/json"
 	"fmt"

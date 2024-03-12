@@ -1,6 +1,10 @@
 package Model
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type GitHubData struct {
 	Username          string  `json:"login"`
@@ -51,4 +55,26 @@ type GoogleData struct {
 	ExpiresAt         time.Time
 	IDToken           string
 	Role              string
+}
+
+type OtherUser struct {
+	ID    primitive.ObjectID `bson:"_id,omitempty"`
+	Email string             `bson:"Email"`
+}
+
+type ApplicationUser struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	Email       string             `bson:"Email"`
+	FirstName   string             `bson:"FirstName"`
+	LastName    string             `bson:"LastName"`
+	Phone       string             `bson:"Phone"`
+	DateOfBirth string             `bson:"DateOfBirth"`
+	Username    string             `bson:"Username"`
+	Password    string             `bson:"Password"`
+	Company     string             `bson:"Company"`
+	Country     string             `bson:"Country"`
+	City        string             `bson:"City"`
+	Address     string             `bson:"Address"`
+	Role        string             `bson:"Role"`
+	Verified    bool               `bson:"Verified"`
 }

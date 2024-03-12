@@ -1,7 +1,7 @@
 package main
 
 import (
-	authentication "MongoGoogle/LoginRegister"
+	controller "MongoGoogle/Controller"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -15,5 +15,5 @@ func init() {
 }
 
 func main() {
-	authentication.Authentication()
+	controller.Authentication()
 }
