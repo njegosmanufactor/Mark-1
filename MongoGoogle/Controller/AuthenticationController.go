@@ -1,6 +1,7 @@
 package Controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -124,6 +125,48 @@ func Authentication() {
 			fmt.Fprintf(res, email)
 		}
 
+	})
+
+	/////////////////////////////////  COMPANY    ///////////////////////////////////
+	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
+		var companyData struct {
+			Name                  string
+			Address               userType.Location
+			Website               string
+			ListOfApprovedDomains []string
+		}
+		err := json.NewDecoder(req.Body).Decode(&companyData)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+
+		if db.ValidComapnyName(companyData.Name) {
+			fmt.Printf("Company exist\n")
+		} else {
+			db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains)
+
+		}
+	})
+
+	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
+		var requestBody struct {
+			CompanyName string `json:"companyName"`
+		}
+		err := json.NewDecoder(req.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+
+		// Provera da li je companyName prazan string
+		if requestBody.CompanyName == "" {
+			http.Error(res, "Company name is required", http.StatusBadRequest)
+			return
+		}
+
+		// Poziv funkcije za brisanje kompanije
+		db.DeleteCompany(requestBody.CompanyName)
 	})
 
 	//Mux router listens for requests on port : 3000

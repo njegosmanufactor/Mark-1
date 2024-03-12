@@ -22,10 +22,11 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 	}
 
 	if data.ValidEmail(user.Email) {
-		fmt.Fprintf(res, "Google Account Successfully Logged In")
+		t, _ := template.ParseFiles("Controller/pages/success.html")
+		t.Execute(res, user)
 	} else {
 		data.SaveUserOther(user.Email)
-		t, _ := template.ParseFiles("LoginRegister/pages/success.html")
+		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(res, user)
 	}
 }

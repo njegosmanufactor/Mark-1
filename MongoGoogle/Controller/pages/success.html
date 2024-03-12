@@ -1,31 +1,28 @@
 <!-- pages/success.html -->
 <!doctype html>
 <html>
-  <head>
+<head>
     <title>Google Sign In</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"> <!-- load bulma css -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"> <!-- load bootstrap css -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"> <!-- load fontawesome -->
-      <style>
-          body        { padding-top:70px; }
-      </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="jumbotron">
-          <h1 class="text-success  text-center"><span class="fa fa-user"></span> Profile Information</h1>
-          <div class="row">
+    <style>
+        body { padding-top:70px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="jumbotron">
+        <h1 class="text-success text-center"><span class="fa fa-user"></span> Profile Information</h1>
+        <div class="row">
             <div class="col-sm-6">
                 <div class="well">
-                        <p>
-                            <strong>Username</strong>: {{.Username}}<br>
-                            <strong>Name</strong>: {{.Name}}<br>
-                            <strong>Location</strong>:{{.Location}}<br>
-                            <strong>Role</strong>:{{.Role}}
-                        </p>
+                    <p>
+                        
+                    </p>
                 </div>
             </div>
         </div>
-      </div>
     </div>
-  </body>
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#companyRegistrationModal">Register Company</button> <!-- Dodato dugme za registraciju firme -->
+</body>
 </html>

@@ -71,10 +71,7 @@ type ApplicationUser struct {
 	DateOfBirth string             `bson:"DateOfBirth"`
 	Username    string             `bson:"Username"`
 	Password    string             `bson:"Password"`
-	Company     string             `bson:"Company"`
-	Country     string             `bson:"Country"`
-	City        string             `bson:"City"`
-	Address     string             `bson:"Address"`
+	Company     bool               `bson:"Company"`
 	Role        string             `bson:"Role"`
 	Verified    bool               `bson:"Verified"`
 }

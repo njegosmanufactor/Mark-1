@@ -22,10 +22,11 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 
 	// Validate user Username in database
 	if data.ValidEmail(githubData.Username) {
-		fmt.Fprintf(w, "Git Account Successfully Logged In")
+		t, _ := template.ParseFiles("Controller/pages/success.html")
+		t.Execute(w, githubData)
 	} else {
 		data.SaveUserOther(githubData.Username)
-		t, _ := template.ParseFiles("LoginRegister/pages/success.html")
+		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(w, githubData)
 	}
 }
