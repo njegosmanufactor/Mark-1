@@ -1,7 +1,8 @@
 package ApplicationService
 
 import (
-	conn "MongoGoogle/MongoDB"
+	model "MongoGoogle/Model"
+	conn "MongoGoogle/Repository"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -32,7 +33,7 @@ func SendMail(email string) {
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	t, _ := template.ParseFiles("LoginRegister/pages/MailTemplate.html")
+	t, _ := template.ParseFiles("Controller/pages/MailTemplate.html")
 
 	var body bytes.Buffer
 
@@ -59,7 +60,7 @@ func SendMail(email string) {
 func SendOwnershipMail(email string, res http.ResponseWriter) {
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
-	var result conn.ApplicationUser
+	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -83,7 +84,7 @@ func SendOwnershipMail(email string, res http.ResponseWriter) {
 		// Authentication.
 		auth := smtp.PlainAuth("", from, password, smtpHost)
 
-		t, _ := template.ParseFiles("LoginRegister/pages/OwnershipMailTemplate.html")
+		t, _ := template.ParseFiles("Controller/pages/OwnershipMailTemplate.html")
 
 		var body bytes.Buffer
 
@@ -124,7 +125,7 @@ func SendInvitationMail(email string, compnayID string) {
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	t, _ := template.ParseFiles("LoginRegister/pages/InviteTemplate.html")
+	t, _ := template.ParseFiles("Controller/pages/InviteTemplate.html")
 
 	var body bytes.Buffer
 

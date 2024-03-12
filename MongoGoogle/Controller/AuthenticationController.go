@@ -48,7 +48,7 @@ func Authentication() {
 
 	//Homepage display on path "https://localhost:3000"
 	r.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		t, _ := template.ParseFiles("LoginRegister/pages/index.html")
+		t, _ := template.ParseFiles("Controller/pages/index.html")
 		t.Execute(res, false)
 	})
 
@@ -98,7 +98,7 @@ func Authentication() {
 
 	//Register page display
 	r.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
-		t, err := template.ParseFiles("LoginRegister/pages/register.html")
+		t, err := template.ParseFiles("Controller/pages/register.html")
 		if err != nil {
 			fmt.Fprintf(res, "Error parsing template: %v", err)
 			return

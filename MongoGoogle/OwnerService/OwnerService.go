@@ -8,7 +8,8 @@ import (
 	"net/http"
 
 	mail "MongoGoogle/ApplicationService"
-	conn "MongoGoogle/MongoDB"
+	model "MongoGoogle/Model"
+	conn "MongoGoogle/Repository"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -42,7 +43,7 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 	}
 	filter := bson.M{"_id": identifier}
 	fmt.Println(identifier)
-	var result conn.ApplicationUser
+	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -81,7 +82,7 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	//finding the user
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": invitation.Email}
-	var result conn.ApplicationUser
+	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 
 	if err != nil {

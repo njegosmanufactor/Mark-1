@@ -8,9 +8,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Setting up the URL to connect to the MongoDB server
+var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+var ClientOptions = options.Client().ApplyURI(uri)
+var Client, Err = mongo.Connect(context.Background(), ClientOptions)
 
 // save user into database
 func SaveUserOther(email string) {
