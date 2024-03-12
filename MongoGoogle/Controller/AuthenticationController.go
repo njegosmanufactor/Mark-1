@@ -16,6 +16,7 @@ import (
 	gitService "MongoGoogle/GitService"
 	googleService "MongoGoogle/GoogleService"
 	userType "MongoGoogle/Model"
+	ownerService "MongoGoogle/OwnerService"
 	db "MongoGoogle/Repository"
 )
 
@@ -74,6 +75,25 @@ func Authentication() {
 	r.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
 		var nill userType.GitHubData
 		gitService.LoggedinHandler(w, r, nill)
+	})
+	//Funkcija koju admin klikce, znaci treba da se u njenom body nalaze mail korisnika, i id kompanije.
+	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
+		ownerService.SendInvitation(res, req)
+	})
+	//funkcija koja ce da upisuje id kompanije u korisnikov profil u bazi
+	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		companyID := vars["companyID"]
+		userID := vars["userID"]
+		applicationService.IncludeUserInCompany(companyID, userID, res)
+	})
+	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
+		ownerService.TransferOwnership(res, req)
+	})
+	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		email := vars["email"]
+		ownerService.FinaliseOwnershipTransfer(email)
 	})
 
 	//Register page display

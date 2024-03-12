@@ -44,7 +44,6 @@ func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	githubAccessToken := GetGithubAccessToken(code)
 
 	githubData := GetGithubData(githubAccessToken)
-
 	LoggedinHandler(w, r, githubData)
 }
 
