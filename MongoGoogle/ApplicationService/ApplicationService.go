@@ -1,10 +1,14 @@
 package ApplicationService
 
 import (
+	conn "MongoGoogle/MongoDB"
 	data "MongoGoogle/MongoDB"
+	"context"
 
 	"fmt"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func ApplicationRegister(res http.ResponseWriter, req *http.Request) {
@@ -61,4 +65,16 @@ func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintf(w, "Incorrect email or password")
 	}
+}
+
+func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
+	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	filter := bson.M{"Email": email}
+	//Ovde mozda bude moralo da se parsira id firme na ObjectID("blablabla")
+	update := bson.M{"$set": bson.M{"Company": companyID}}
+	_, err := collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -11,6 +11,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
+
+// Setting up client options for connection
+var clientOptions = options.Client().ApplyURI(Uri)
+
+// Connecting to the MongoDB server
+var Client, Err = mongo.Connect(context.Background(), clientOptions)
+
 type OtherUser struct {
 	ID    primitive.ObjectID `bson:"_id,omitempty"`
 	Email string             `bson:"Email"`
