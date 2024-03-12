@@ -1,4 +1,3 @@
-<!-- pages/index.html -->
 <!doctype html>
 <html>
 <head>
@@ -22,9 +21,17 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.text())
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/success.html'; // Preusmeri na success.html ako je odgovor uspešan
+                } else {
+                    return response.text(); // Inače obradi odgovor kao tekst
+                }
+            })
             .then(message => {
-                messageLabel.textContent = message;
+                if (message) {
+                    messageLabel.textContent = message; // Ako postoji poruka, prikaži je
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -32,6 +39,7 @@
         });
     });
 </script>
+
 <body>
 <div class="container">
     <div class="jumbotron text-center text-success">
@@ -45,7 +53,7 @@
         <br>
         <a href="/auth/google" class="btn btn-success"><span class="fa fa-google"></span> Sign In with Google</a>
         <a href="/login/github" class="btn btn-success">Sign In with GitHub</a>
-        <a href="/register.html" class="btn btn-success">Register</a> <!-- Updated href attribute -->
+        <a href="/register.html" class="btn btn-success">Register</a> 
     </div>
 </div>
 </body>

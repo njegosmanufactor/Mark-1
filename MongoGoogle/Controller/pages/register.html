@@ -32,16 +32,6 @@
             <input type="password" name="password" id="password" placeholder="Password">
             <input type="password" name="confirmPassword" id="confirmPassword" placeholder="Confirm Password">
             <br>
-            <input type="checkbox" id="companyCheck" onchange="toggleCompanyFields()">
-            <label for="companyCheck">I have a company</label>
-            <br>
-            <div id="companyFields" style="display: none;">
-                <input type="text" name="company" id="company" placeholder="Company">
-                <input type="text" name="companyCountry" id="companyCountry" placeholder="Country">
-                <input type="text" name="companyCity" id="companyCity" placeholder="City">
-                <input type="text" name="companyAddress" id="companyAddress" placeholder="Address">
-            </div>
-            <br>
             <button type="submit">Register</button>
             <label id="registerMessage" style="color: red;"></label>
         </form>
@@ -49,17 +39,6 @@
 </div>
 
 <script>
-    // Function to toggle company fields visibility based on checkbox
-    function toggleCompanyFields() {
-        var checkBox = document.getElementById("companyCheck");
-        var companyFields = document.getElementById("companyFields");
-        if (checkBox.checked) {
-            companyFields.style.display = "block";
-        } else {
-            companyFields.style.display = "none";
-        }
-    }
-
     // Function to validate form before submission
     function validateForm() {
         var email = document.getElementById("email").value;

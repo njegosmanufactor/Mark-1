@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -38,7 +39,7 @@ func SaveUserOther(email string) {
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, company string, country string, city string, address string) {
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string) {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
 	if err != nil {
@@ -59,10 +60,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		DateOfBirth: date,
 		Username:    username,
 		Password:    password,
-		Company:     company,
-		Country:     country,
-		City:        city,
-		Address:     address,
+		Company:     false,
 		Role:        "User",
 	}
 
@@ -165,7 +163,7 @@ func VerifyUser(email string) bool {
 	return true
 }
 
-func SetUserRoleOwner(email string) error {
+func SetUserRoleOwner(userID primitive.ObjectID) error {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
 	if err != nil {
@@ -176,7 +174,7 @@ func SetUserRoleOwner(email string) error {
 			log.Fatal(err)
 		}
 	}()
-	filter := bson.M{"Email": email}
+	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Role": "Owner"}}
 
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)

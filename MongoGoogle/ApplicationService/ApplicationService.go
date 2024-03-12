@@ -21,18 +21,15 @@ func ApplicationRegister(res http.ResponseWriter, req *http.Request) {
 	date := req.FormValue("date")
 	username := req.FormValue("username")
 	password := req.FormValue("password")
-	company := req.FormValue("company")
-	country := req.FormValue("country")
-	city := req.FormValue("city")
-	address := req.FormValue("address")
 
 	//Save user
 	if data.ValidEmail(email) || data.ValidUsername(username) {
 		fmt.Fprintf(res, "Username or Email in use")
 	} else {
-		data.SaveUserApplication(email, firstName, lastName, phoneNumber, date, username, password, company, country, city, address)
+		data.SaveUserApplication(email, firstName, lastName, phoneNumber, date, username, password)
 	}
 	SendMail(email)
+	http.Redirect(res, req, "success.html", http.StatusSeeOther)
 }
 
 func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
@@ -41,24 +38,16 @@ func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reading from html
+	// Čitanje podataka iz forme
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	// Validation User for Application
-
-	var valid bool = data.ValidUser(email, password)
-	if valid {
-		fmt.Fprintf(w, "Successful")
-		user, err := data.GetUserData(email)
-		if err != nil {
-			fmt.Printf("User not found: %v\n", err)
-			return
-		}
-		if user.Company != "" {
-			data.SetUserRoleOwner(email) //move to future function
-		}
-	} else {
-		fmt.Fprintf(w, "Incorrect email or password")
+	// Provera korisničkih podataka
+	if !data.ValidUser(email, password) {
+		http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
+		return
 	}
+
+	// Preusmeravanje na success.html ako je prijava uspešna
+	http.Redirect(w, r, "/success.html", http.StatusSeeOther)
 }
