@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,22 +14,16 @@ import (
 )
 
 // Setting up the URL to connect to the MongoDB server
-var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
-var ClientOptions = options.Client().ApplyURI(uri)
+var Uri, _ = os.LookupEnv("MONGO_URI")
+var ClientOptions = options.Client().ApplyURI(Uri)
 var Client, Err = mongo.Connect(context.Background(), ClientOptions)
 
 // save user into database
 func SaveUserOther(email string) {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	// Creating user instance
 	user := model.OtherUser{
 		Email: email,
@@ -44,17 +39,11 @@ func SaveUserOther(email string) {
 }
 
 func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string) {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
+	}
 	// Creating user instance
 	user := model.ApplicationUser{
 		Email:       email,
@@ -64,7 +53,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		DateOfBirth: date,
 		Username:    username,
 		Password:    password,
-		Company:     false,
+		Company:     "",
 		Role:        "User",
 	}
 
@@ -78,134 +67,99 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 }
 
 func ValidUser(email string, password string) bool {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+
 	filter := bson.M{"Email": email, "Password": password}
 	var result model.ApplicationUser
-	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
+	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if Err != nil {
+		if Err == mongo.ErrNoDocuments {
 			return false
 		}
-		log.Fatal(err)
+		log.Fatal(Err)
 	}
 	return true
 }
 
 func ValidEmail(email string) bool {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
-	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
+	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if Err != nil {
+		if Err == mongo.ErrNoDocuments {
 			return false
 		}
-		log.Fatal(err)
+		log.Fatal(Err)
 	}
 	return true
 }
 
 func ValidUsername(username string) bool {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	filter := bson.M{"Username": username}
 	var result model.ApplicationUser
-	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
+	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if Err != nil {
+		if Err == mongo.ErrNoDocuments {
 			return false
 		}
-		log.Fatal(err)
+		log.Fatal(Err)
 	}
 	return true
 }
 
 func VerifyUser(email string) bool {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	filter := bson.M{"Email": email}
 	update := bson.M{"$set": bson.M{"Verified": true}}
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return false
-	}
-
-	return true
+	_, Err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	return Err == nil
 }
 
 func SetUserRoleOwner(userID primitive.ObjectID) error {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Role": "Owner"}}
 
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
+	_, Err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	if Err != nil {
+		return Err
 	}
 
 	return nil
 }
 func GetUserData(email string) (model.ApplicationUser, error) {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
+	UsersCollection := Client.Database("UserDatabase").Collection("Users")
+	if Err != nil {
+		log.Fatal(Err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+
 	filter := bson.M{"Email": email}
 
 	var result model.ApplicationUser
 
-	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		return model.ApplicationUser{}, err
+	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if Err != nil {
+		return model.ApplicationUser{}, Err
 	}
 
 	return result, nil

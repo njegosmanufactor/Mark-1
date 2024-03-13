@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"text/template"
 
 	"github.com/gorilla/mux"
@@ -23,8 +24,14 @@ import (
 
 func Authentication() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
-	key := "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"
-
+	var key, env_key_error = os.LookupEnv("GOOGLE_KEY")
+	if !env_key_error {
+		log.Fatal("Google key not defined in .env file")
+	}
+	var client_id, env_clientID_error = os.LookupEnv("GOOGLE_CLIENT_ID")
+	if !env_clientID_error {
+		log.Fatal("Google client id not defined in .env file")
+	}
 	//Time period over which the token is valid(or existant)
 	maxAge := 86400
 	isProd := false
@@ -42,7 +49,7 @@ func Authentication() {
 
 	//Creates provider for google using Client id and Client secret
 	goth.UseProviders(
-		google.New("261473284823-sh61p2obchbmdrq9pucc7s5oo9c8l98j.apps.googleusercontent.com", "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", "http://localhost:3000/auth/google/callback", "email", "profile"),
+		google.New(client_id, key, "http://localhost:3000/auth/google/callback", "email", "profile"),
 	)
 
 	r := mux.NewRouter()

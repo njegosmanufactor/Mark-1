@@ -71,7 +71,7 @@ type ApplicationUser struct {
 	DateOfBirth string             `bson:"DateOfBirth"`
 	Username    string             `bson:"Username"`
 	Password    string             `bson:"Password"`
-	Company     bool               `bson:"Company"`
+	Company     string             `bson:"Company"`
 	Role        string             `bson:"Role"`
 	Verified    bool               `bson:"Verified"`
 }

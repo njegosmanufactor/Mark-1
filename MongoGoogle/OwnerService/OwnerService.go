@@ -78,20 +78,24 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	json.NewEncoder(res).Encode(invitation)
-
+	fmt.Printf("??")
 	//finding the user
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	fmt.Printf("??")
 	filter := bson.M{"Email": invitation.Email}
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
-
+	json.NewEncoder(res).Encode(result)
 	if err != nil {
+		log.Fatal(err)
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find user!")
 			return
 		}
 	} else { //this is company id extracted from admins or owners profile
+		fmt.Printf("??")
 		mail.SendInvitationMail(invitation.Email, invitation.ID)
+		fmt.Println("??")
 	}
 
 }
