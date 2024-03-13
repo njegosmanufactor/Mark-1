@@ -12,7 +12,7 @@ import (
 
 // save user into database
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string) {
-	client, err := Client, Err
+	client = GetClient()
 	CompanyCollection := client.Database("UserDatabase").Collection("Company")
 	if err != nil {
 		log.Fatal(err)
@@ -40,7 +40,7 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 }
 
 func DeleteCompany(companyName string) {
-	client, err := Client, Err
+	client = GetClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func DeleteCompany(companyName string) {
 }
 
 func ValidComapnyName(companyName string) bool {
-	client, err := Client, Err
+	client = GetClient()
 	UsersCollection := client.Database("UserDatabase").Collection("Company")
 	if err != nil {
 		log.Fatal(err)

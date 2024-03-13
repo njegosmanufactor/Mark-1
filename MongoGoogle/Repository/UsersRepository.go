@@ -14,16 +14,37 @@ import (
 )
 
 // Setting up the URL to connect to the MongoDB server
-var Uri, _ = os.LookupEnv("MONGO_URI")
+// var Uri, _ = os.LookupEnv("MONGO_URI")
+/*var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 var ClientOptions = options.Client().ApplyURI(Uri)
 var Client, Err = mongo.Connect(context.Background(), ClientOptions)
+*/
+var (
+	uri           string
+	clientOptions *options.ClientOptions
+	client        *mongo.Client
+	err           error
+)
+
+// InitConnection initializes the MongoDB connection
+func InitConnection() {
+	uri, _ = os.LookupEnv("MONGO_URI")
+	clientOptions = options.Client().ApplyURI(uri)
+	client, err = mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB")
+}
+
+// GetClient returns the MongoDB client for reuse in other packages
+func GetClient() *mongo.Client {
+	return client
+}
 
 // save user into database
 func SaveUserOther(email string) {
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	// Creating user instance
 	user := model.OtherUser{
 		Email: email,
@@ -38,12 +59,8 @@ func SaveUserOther(email string) {
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string) {
-
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	// Creating user instance
 	user := model.ApplicationUser{
 		Email:       email,
@@ -55,6 +72,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		Password:    password,
 		Company:     "",
 		Role:        "User",
+		Verified:    verified,
 	}
 
 	// Adding user to the database
@@ -68,98 +86,79 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 
 func ValidUser(email string, password string) bool {
 
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
-
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email, "Password": password}
 	var result model.ApplicationUser
-	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if Err != nil {
-		if Err == mongo.ErrNoDocuments {
+	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
 			return false
 		}
-		log.Fatal(Err)
+		log.Fatal(err)
 	}
 	return true
 }
 
 func ValidEmail(email string) bool {
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
+	fmt.Println(UsersCollection.Name() + "mailcontroler")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
-	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if Err != nil {
-		if Err == mongo.ErrNoDocuments {
+	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("Nema ga")
 			return false
 		}
-		log.Fatal(Err)
+		fmt.Println(err)
 	}
 	return true
 }
 
 func ValidUsername(username string) bool {
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
+	fmt.Println(UsersCollection.Name())
 	filter := bson.M{"Username": username}
 	var result model.ApplicationUser
-	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if Err != nil {
-		if Err == mongo.ErrNoDocuments {
+	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	fmt.Println(result.Username)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("Nema ni njega")
 			return false
 		}
-		log.Fatal(Err)
+		fmt.Println(err)
 	}
 	return true
 }
 
 func VerifyUser(email string) bool {
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	update := bson.M{"$set": bson.M{"Verified": true}}
-	_, Err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	return Err == nil
+	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	return err == nil
 }
 
 func SetUserRoleOwner(userID primitive.ObjectID) error {
 
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
-
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Role": "Owner"}}
-
-	_, Err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if Err != nil {
-		return Err
+	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 func GetUserData(email string) (model.ApplicationUser, error) {
-	UsersCollection := Client.Database("UserDatabase").Collection("Users")
-	if Err != nil {
-		log.Fatal(Err)
-	}
-
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
-
 	var result model.ApplicationUser
-
-	Err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if Err != nil {
-		return model.ApplicationUser{}, Err
+	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return model.ApplicationUser{}, err
 	}
 
 	return result, nil

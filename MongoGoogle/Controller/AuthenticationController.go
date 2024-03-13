@@ -85,20 +85,20 @@ func Authentication() {
 		gitService.LoggedinHandler(w, r, nill)
 	})
 	//Funkcija koju admin klikce, znaci treba da se u njenom body nalaze mail korisnika, i id kompanije.
-	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.SendInvitation(res, req)
 	})
 	//funkcija koja ce da upisuje id kompanije u korisnikov profil u bazi
-	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
 		companyID := vars["companyID"]
 		userID := vars["userID"]
 		applicationService.IncludeUserInCompany(companyID, userID, res)
 	})
-	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.TransferOwnership(res, req)
 	})
-	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
 		email := vars["email"]
 		ownerService.FinaliseOwnershipTransfer(email)
@@ -120,11 +120,26 @@ func Authentication() {
 	})
 
 	//Our service that serves registration functionality
-	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
-		applicationService.ApplicationRegister(res, req)
+	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) { //postman
+		var requestBody struct {
+			Email       string `json:"email"`
+			FirstName   string `json:"firstName"`
+			LastName    string `json:"lastName"`
+			PhoneNumber string `json:"phoneNumber"`
+			Date        string `json:"date"`
+			Username    string `json:"username"`
+			Password    string `json:"password"`
+		}
+
+		err := json.NewDecoder(req.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		applicationService.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
 	})
 
-	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
 
 		vars := mux.Vars(req)
 		email := vars["email"]
@@ -135,7 +150,7 @@ func Authentication() {
 	})
 
 	/////////////////////////////////  COMPANY    ///////////////////////////////////
-	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) { //postman
 		var companyData struct {
 			Name                  string
 			Address               userType.Location
@@ -156,7 +171,7 @@ func Authentication() {
 		}
 	})
 
-	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) { //postman
 		var requestBody struct {
 			CompanyName string `json:"companyName"`
 		}

@@ -4,36 +4,47 @@ import (
 	conn "MongoGoogle/Repository"
 	data "MongoGoogle/Repository"
 	"context"
-
 	"fmt"
 	"net/http"
+	"regexp"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func ApplicationRegister(res http.ResponseWriter, req *http.Request) {
-
-	if req.Method != http.MethodPost {
-		http.Error(res, "Only POST method allowed", http.StatusMethodNotAllowed)
+func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string) {
+	if email == "" || username == "" || password == "" || date == "" || phone == "" || firstName == "" || lastName == "" {
+		fmt.Println("Some required parameters are missing.")
 		return
 	}
-
-	email := req.FormValue("email")
-	firstName := req.FormValue("firstName")
-	lastName := req.FormValue("lastName")
-	phoneNumber := req.FormValue("countryCode") + req.FormValue("phone")
-	date := req.FormValue("date")
-	username := req.FormValue("username")
-	password := req.FormValue("password")
-
-	//Save user
-	if data.ValidEmail(email) || data.ValidUsername(username) {
-		fmt.Fprintf(res, "Username or Email in use")
-	} else {
-		data.SaveUserApplication(email, firstName, lastName, phoneNumber, date, username, password)
+	dateOfBirth, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		fmt.Println("Invalid date format.")
+		return
 	}
-	SendMail(email)
-	http.Redirect(res, req, "success.html", http.StatusSeeOther)
+	if dateOfBirth.After(time.Now()) {
+		fmt.Println("Date of birth cannot be in the future.")
+		return
+	}
+	match, _ := regexp.MatchString("^[0-9]+$", phone)
+	if !match {
+		fmt.Println("Phone number must contain only digits.")
+		return
+	}
+	//Save user
+	fmt.Println(username)
+	if data.ValidEmail(email) {
+		fmt.Println("Email in use")
+		return
+	}
+	if data.ValidUsername(username) {
+		fmt.Println("Username in use")
+		return
+	} else {
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
+		SendMail(email)
+		fmt.Println("Success")
+	}
 }
 
 func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +68,7 @@ func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	//Ovde mozda bude moralo da se parsira id firme na ObjectID("blablabla")
 	update := bson.M{"$set": bson.M{"Company": companyID}}

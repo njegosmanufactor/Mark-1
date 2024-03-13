@@ -74,4 +74,5 @@ type ApplicationUser struct {
 	Company     string             `bson:"Company"`
 	Role        string             `bson:"Role"`
 	Verified    bool               `bson:"Verified"`
+	Authorised  bool               `bson:"Authorised"`
 }

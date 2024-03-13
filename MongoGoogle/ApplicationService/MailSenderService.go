@@ -63,7 +63,7 @@ func SendMail(email string) {
 
 func SendOwnershipMail(email string, res http.ResponseWriter) {
 
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)

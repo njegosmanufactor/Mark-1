@@ -35,8 +35,8 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 
-	//Finding user in database
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	//Finding owner or admin in database
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	identifier, iderr := primitive.ObjectIDFromHex(ownership.ID)
 	if iderr != nil {
 		log.Fatal(iderr)
@@ -60,7 +60,7 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 
 }
 func FinaliseOwnershipTransfer(email string) error {
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	update := bson.M{"$set": bson.M{"Role": "Owner"}}
 	_, err := collection.UpdateOne(context.Background(), filter, update)
@@ -78,10 +78,10 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	json.NewEncoder(res).Encode(invitation)
-	fmt.Printf("??")
+
 	//finding the user
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
-	fmt.Printf("??")
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
+
 	filter := bson.M{"Email": invitation.Email}
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
@@ -93,9 +93,9 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else { //this is company id extracted from admins or owners profile
-		fmt.Printf("??")
+
 		mail.SendInvitationMail(invitation.Email, invitation.ID)
-		fmt.Println("??")
+
 	}
 
 }
