@@ -4,6 +4,10 @@ import (
 	conn "MongoGoogle/Repository"
 	data "MongoGoogle/Repository"
 	"context"
+	"encoding/base64"
+	"regexp"
+	"strings"
+	"time"
 
 	"fmt"
 	"net/http"
@@ -11,55 +15,76 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func ApplicationRegister(res http.ResponseWriter, req *http.Request) {
+// Registers a new user with the provided information, checks for required parameters, validates the date of birth, phone number format, and uniqueness of email and username before saving the user application.
+func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string) {
 
-	if req.Method != http.MethodPost {
-		http.Error(res, "Only POST method allowed", http.StatusMethodNotAllowed)
+	if email == "" || username == "" || password == "" || date == "" || phone == "" || firstName == "" || lastName == "" {
+		fmt.Println("Some required parameters are missing.")
 		return
 	}
-
-	email := req.FormValue("email")
-	firstName := req.FormValue("firstName")
-	lastName := req.FormValue("lastName")
-	phoneNumber := req.FormValue("countryCode") + req.FormValue("phone")
-	date := req.FormValue("date")
-	username := req.FormValue("username")
-	password := req.FormValue("password")
-
+	dateOfBirth, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		fmt.Println("Invalid date format.")
+		return
+	}
+	if dateOfBirth.After(time.Now()) {
+		fmt.Println("Date of birth cannot be in the future.")
+		return
+	}
+	match, _ := regexp.MatchString("^[0-9]+$", phone)
+	if !match {
+		fmt.Println("Phone number must contain only digits.")
+		return
+	}
 	//Save user
 	if data.ValidEmail(email) || data.ValidUsername(username) {
-		fmt.Fprintf(res, "Username or Email in use")
+		fmt.Println("Username or Email in use")
 	} else {
-		data.SaveUserApplication(email, firstName, lastName, phoneNumber, date, username, password)
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
+		SendMail(email)
+		fmt.Println("Success")
 	}
-	SendMail(email)
-	http.Redirect(res, req, "success.html", http.StatusSeeOther)
 }
 
-func ApplicationLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Čitanje podataka iz forme
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-
-	// Provera korisničkih podataka
+// Authenticates the user by verifying the email and password, and extracts user information from the token in the request header to set the user as authorized.
+func ApplicationLogin(email string, password string, req *http.Request) {
 	if !data.ValidUser(email, password) {
-		http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
+		fmt.Println("Incorrect email or password")
 		return
 	}
-
-	// Preusmeravanje na success.html ako je prijava uspešna
-	http.Redirect(w, r, "/success.html", http.StatusSeeOther)
+	fmt.Println("Success")
+	ExtractUserInfoFromToken(req)
 }
 
+// Extracts user information from the token in the request header and sets the user as authorized in the database.
+func ExtractUserInfoFromToken(req *http.Request) bool {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		fmt.Println("Unauthorised")
+		return false
+	}
+	parts := strings.Split(authHeader, " ")
+	token := parts[1]
+
+	decodedToken, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		fmt.Println("Failed to decode token")
+		fmt.Println("Unauthorised")
+		return false
+	}
+	tokenData := strings.Split(string(decodedToken), ":")
+	email := tokenData[0]
+
+	user, err := data.GetUserData(email)
+	data.SetAuthorise(user.ID, true)
+	fmt.Println(email + " " + "Authorized")
+	return true
+}
+
+// Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
-	//Ovde mozda bude moralo da se parsira id firme na ObjectID("blablabla")
 	update := bson.M{"$set": bson.M{"Company": companyID}}
 	_, err := collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {

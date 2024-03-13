@@ -13,6 +13,7 @@ import (
 	"github.com/markbates/goth/gothic"
 )
 
+// Completes the user authentication process using Google OAuth.
 func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request) {
 	tmpUser, err := gothic.CompleteUserAuth(res, req)
 	user := AddUserRole(&tmpUser)
@@ -25,12 +26,13 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(res, user)
 	} else {
-		data.SaveUserOther(user.Email)
+		data.SaveUserApplication(user.Email, user.FirstName, user.LastName, "", "", user.Email, "", true)
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(res, user)
 	}
 }
 
+// Adds user role to the Google user data.
 func AddUserRole(user *goth.User) userType.GoogleData {
 	var roleUser userType.GoogleData
 

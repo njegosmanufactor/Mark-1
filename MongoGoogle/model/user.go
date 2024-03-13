@@ -57,11 +57,6 @@ type GoogleData struct {
 	Role              string
 }
 
-type OtherUser struct {
-	ID    primitive.ObjectID `bson:"_id,omitempty"`
-	Email string             `bson:"Email"`
-}
-
 type ApplicationUser struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Email       string             `bson:"Email"`
@@ -71,7 +66,8 @@ type ApplicationUser struct {
 	DateOfBirth string             `bson:"DateOfBirth"`
 	Username    string             `bson:"Username"`
 	Password    string             `bson:"Password"`
-	Company     bool               `bson:"Company"`
+	Company     string             `bson:"Company"`
 	Role        string             `bson:"Role"`
 	Verified    bool               `bson:"Verified"`
+	Authorised  bool               `bson:"Authorised"`
 }

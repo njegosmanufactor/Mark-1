@@ -21,6 +21,7 @@ import (
 	db "MongoGoogle/Repository"
 )
 
+// Handles user authentication using OAuth2 providers such as Google and Github.
 func Authentication() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
 	key := "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"
@@ -108,15 +109,49 @@ func Authentication() {
 	})
 
 	//Our service that serves login functionality
-	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		applicationService.ApplicationLogin(w, r)
+	r.HandleFunc("/login", func(res http.ResponseWriter, req *http.Request) {
+		var requestBody struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+
+		err := json.NewDecoder(req.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		applicationService.ApplicationLogin(requestBody.Email, requestBody.Password, req)
 	})
 
 	//Our service that serves registration functionality
 	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
-		applicationService.ApplicationRegister(res, req)
+		var requestBody struct {
+			Email       string `json:"email"`
+			FirstName   string `json:"firstName"`
+			LastName    string `json:"lastName"`
+			PhoneNumber string `json:"phoneNumber"`
+			Date        string `json:"date"`
+			Username    string `json:"username"`
+			Password    string `json:"password"`
+		}
+		err := json.NewDecoder(req.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		applicationService.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
 	})
 
+	// Logs out the user with the specified email address.
+	r.HandleFunc("/logout/{email}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		email := vars["email"]
+		user, _ := db.GetUserData(email)
+		db.SetAuthorise(user.ID, false)
+		fmt.Println("Logout" + " " + user.Email)
+	})
+
+	// Verifies the user with the specified email address.
 	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
 
 		vars := mux.Vars(req)
@@ -128,28 +163,44 @@ func Authentication() {
 	})
 
 	/////////////////////////////////  COMPANY    ///////////////////////////////////
-	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
-		var companyData struct {
-			Name                  string
-			Address               userType.Location
-			Website               string
-			ListOfApprovedDomains []string
-		}
-		err := json.NewDecoder(req.Body).Decode(&companyData)
-		if err != nil {
-			http.Error(res, "Error decoding request body", http.StatusBadRequest)
-			return
-		}
 
-		if db.ValidComapnyName(companyData.Name) {
-			fmt.Printf("Company exist\n")
+	// Registers a new company using the provided email address for authentication.
+	r.HandleFunc("/registerCompany/{email}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		email := vars["email"]
+		user, _ := db.GetUserData(email)
+		if user.Authorised {
+			var companyData struct {
+				Name                  string            `json:"name"`
+				Address               userType.Location `json:"location"`
+				Website               string            `json:"website"`
+				ListOfApprovedDomains []string          `json:"listOfApprovedDomains"`
+			}
+
+			err := json.NewDecoder(req.Body).Decode(&companyData)
+			if err != nil {
+				http.Error(res, "Error decoding request body", http.StatusBadRequest)
+				return
+			}
+
+			if db.ValidComapnyName(companyData.Name) {
+				fmt.Printf("Company exist\n")
+			} else {
+				db.SetUserRole(user.ID, "Owner")
+				db.SetUserCompany(user.ID, companyData.Name)
+				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains)
+			}
 		} else {
-			db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains)
-
+			fmt.Println("User not found")
 		}
+
 	})
 
-	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
+	// Deletes the company associated with the provided email address.
+	r.HandleFunc("/deleteCompany/{email}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		email := vars["email"]
+		user, _ := db.GetUserData(email)
 		var requestBody struct {
 			CompanyName string `json:"companyName"`
 		}
@@ -158,15 +209,17 @@ func Authentication() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-
-		// Provera da li je companyName prazan string
-		if requestBody.CompanyName == "" {
-			http.Error(res, "Company name is required", http.StatusBadRequest)
-			return
+		if user.Company == requestBody.CompanyName && user.Authorised {
+			if requestBody.CompanyName == "" {
+				http.Error(res, "Company name is required", http.StatusBadRequest)
+				return
+			}
+			db.SetUserCompany(user.ID, "")
+			db.SetUserRole(user.ID, "User")
+			db.DeleteCompany(requestBody.CompanyName)
+		} else {
+			fmt.Println("You are not owner of" + requestBody.CompanyName)
 		}
-
-		// Poziv funkcije za brisanje kompanije
-		db.DeleteCompany(requestBody.CompanyName)
 	})
 
 	//Mux router listens for requests on port : 3000

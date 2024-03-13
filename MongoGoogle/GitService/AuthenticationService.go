@@ -25,7 +25,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(w, githubData)
 	} else {
-		data.SaveUserOther(githubData.Username)
+		data.SaveUserApplication(githubData.Email, githubData.Name, "", "", "", githubData.Username, "", true)
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(w, githubData)
 	}

@@ -23,14 +23,14 @@
             })
             .then(response => {
                 if (response.ok) {
-                    window.location.href = '/success.html'; // Preusmeri na success.html ako je odgovor uspešan
+                    window.location.href = '/success.html';
                 } else {
-                    return response.text(); // Inače obradi odgovor kao tekst
+                    return response.text();
                 }
             })
             .then(message => {
                 if (message) {
-                    messageLabel.textContent = message; // Ako postoji poruka, prikaži je
+                    messageLabel.textContent = message;
                 }
             })
             .catch(error => {

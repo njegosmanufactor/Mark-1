@@ -16,10 +16,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// OwnershipDTO is a data transfer object used for transferring ownership information.
 type OwnershipDTO struct {
 	ID    string `bson:"_id,omitempty"` //Owner's or admin's ID
 	Email string `bson:"Email"`         //User he sends the invitation to.
 }
+
+// InvitationDTO is a data transfer object used for transferring invitation information.
 type InvitationDTO struct {
 	Email string `bson:"Email"`
 	ID    string `bson:"_id,omitempty"`
@@ -59,6 +62,8 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 	}
 
 }
+
+// FinaliseOwnershipTransfer finalizes the ownership transfer by updating the user's role to "Owner".
 func FinaliseOwnershipTransfer(email string) error {
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
@@ -70,6 +75,7 @@ func FinaliseOwnershipTransfer(email string) error {
 	return nil
 }
 
+// SendInvitation sends an invitation to the specified email address.
 func SendInvitation(res http.ResponseWriter, req *http.Request) {
 
 	var invitation InvitationDTO

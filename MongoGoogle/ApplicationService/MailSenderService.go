@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Sends an email for account verification to the provided email address.
 func SendMail(email string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
@@ -57,6 +58,7 @@ func SendMail(email string) {
 
 }
 
+// Sends an email for ownership transfer to the provided email address and sends a response if the user is not found.
 func SendOwnershipMail(email string, res http.ResponseWriter) {
 	collection := conn.Client.Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
@@ -108,6 +110,7 @@ func SendOwnershipMail(email string, res http.ResponseWriter) {
 	}
 }
 
+// Sends an email invitation to the provided email address for joining a company identified by the given company ID.
 func SendInvitationMail(email string, compnayID string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"

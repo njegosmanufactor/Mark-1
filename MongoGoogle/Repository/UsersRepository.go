@@ -17,33 +17,8 @@ var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net
 var ClientOptions = options.Client().ApplyURI(uri)
 var Client, Err = mongo.Connect(context.Background(), ClientOptions)
 
-// save user into database
-func SaveUserOther(email string) {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
-	// Creating user instance
-	user := model.OtherUser{
-		Email: email,
-	}
-
-	// Adding user to the database
-	insertResult, err := UsersCollection.InsertOne(context.Background(), user)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Added new user with ID:", insertResult.InsertedID)
-}
-
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string) {
+// SaveUserApplication saves user application data into the database.
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
 	if err != nil {
@@ -64,8 +39,10 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		DateOfBirth: date,
 		Username:    username,
 		Password:    password,
-		Company:     false,
+		Company:     "",
 		Role:        "User",
+		Verified:    verified,
+		Authorised:  false,
 	}
 
 	// Adding user to the database
@@ -77,6 +54,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
+// ValidUser checks if the user with the given email and password exists in the database.
 func ValidUser(email string, password string) bool {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
@@ -100,6 +78,7 @@ func ValidUser(email string, password string) bool {
 	return true
 }
 
+// ValidEmail checks if the given email exists in the database.
 func ValidEmail(email string) bool {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
@@ -123,6 +102,7 @@ func ValidEmail(email string) bool {
 	return true
 }
 
+// ValidUsername checks if the given username exists in the database.
 func ValidUsername(username string) bool {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
@@ -146,6 +126,7 @@ func ValidUsername(username string) bool {
 	return true
 }
 
+// VerifyUser updates the verification status of the user with the given email.
 func VerifyUser(email string) bool {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
@@ -167,7 +148,8 @@ func VerifyUser(email string) bool {
 	return true
 }
 
-func SetUserRoleOwner(userID primitive.ObjectID) error {
+// SetUserRole updates the role of the user with the given user ID.
+func SetUserRole(userID primitive.ObjectID, role string) error {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
 	if err != nil {
@@ -179,7 +161,7 @@ func SetUserRoleOwner(userID primitive.ObjectID) error {
 		}
 	}()
 	filter := bson.M{"_id": userID}
-	update := bson.M{"$set": bson.M{"Role": "Owner"}}
+	update := bson.M{"$set": bson.M{"Role": role}}
 
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -188,6 +170,8 @@ func SetUserRoleOwner(userID primitive.ObjectID) error {
 
 	return nil
 }
+
+// GetUserData retrieves the user data for the given email.
 func GetUserData(email string) (model.ApplicationUser, error) {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Users")
@@ -209,4 +193,26 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	}
 
 	return result, nil
+}
+
+func SetAuthorise(userID primitive.ObjectID, authorised bool) error {
+	client, err := MongoConnection()
+	UsersCollection := client.Database("UserDatabase").Collection("Users")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	filter := bson.M{"_id": userID}
+	update := bson.M{"$set": bson.M{"Authorised": authorised}}
+
+	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

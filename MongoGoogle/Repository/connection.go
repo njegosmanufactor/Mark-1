@@ -9,6 +9,7 @@ import (
 
 var uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
 
+// MongoConnection establishes a connection to the MongoDB server.
 func MongoConnection() (*mongo.Client, error) {
 	// Setting up client options for connection
 	clientOptions := options.Client().ApplyURI(uri)

@@ -7,10 +7,11 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// save user into database
+// Saves a new company into the database.
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string) {
 	client, err := MongoConnection()
 	CompanyCollection := client.Database("UserDatabase").Collection("Company")
@@ -39,6 +40,7 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 	fmt.Println("Added new company with ID:", insertResult.InsertedID)
 }
 
+// Deletes a company from the database based on its name.
 func DeleteCompany(companyName string) {
 	client, err := MongoConnection()
 	if err != nil {
@@ -50,10 +52,8 @@ func DeleteCompany(companyName string) {
 		}
 	}()
 
-	// Pristupanje kolekciji Company
 	companyCollection := client.Database("UserDatabase").Collection("Company")
 
-	// Brisanje kompanije na osnovu njenog imena
 	deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
 	if err != nil {
 		log.Fatal(err)
@@ -62,6 +62,7 @@ func DeleteCompany(companyName string) {
 	fmt.Printf("Deleted company with name '%s'. Deleted count: %d\n", companyName, deleteResult.DeletedCount)
 }
 
+// Checks if a company with the given name exists in the database.
 func ValidComapnyName(companyName string) bool {
 	client, err := MongoConnection()
 	UsersCollection := client.Database("UserDatabase").Collection("Company")
@@ -83,4 +84,27 @@ func ValidComapnyName(companyName string) bool {
 		log.Fatal(err)
 	}
 	return true
+}
+
+// Sets the company for a user identified by userID in the database.
+func SetUserCompany(userID primitive.ObjectID, companyName string) error {
+	client, err := MongoConnection()
+	UsersCollection := client.Database("UserDatabase").Collection("Users")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = client.Disconnect(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	filter := bson.M{"_id": userID}
+	update := bson.M{"$set": bson.M{"Company": companyName}}
+
+	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
