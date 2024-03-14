@@ -118,7 +118,7 @@ func SendOwnershipMail(email string, res http.ResponseWriter) {
 }
 
 // Sends an email invitation to the provided email address for joining a company identified by the given company ID.
-func SendInvitationMail(email string, compnayID string) {
+func SendInvitationMail(id string, email string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
 	var password, pass_err = os.LookupEnv("GOOGLE_MAIL_PASSWORD")
@@ -143,9 +143,8 @@ func SendInvitationMail(email string, compnayID string) {
 
 	mimeHeaders := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	body.Write([]byte(fmt.Sprintf("Subject: Company invitation \n%s\n\n", mimeHeaders)))
-	link := "http://localhost:3000/inviteConfirmation/{companyID}/{email}"
-	link = strings.Replace(link, "{email}", email, 1)
-	link = strings.Replace(link, "{companyID}", compnayID, 1)
+	link := "http://localhost:3000/inviteConfirmation/{id}"
+	link = strings.Replace(link, "{id}", id, 1)
 	t.Execute(&body, struct {
 		Message string
 	}{

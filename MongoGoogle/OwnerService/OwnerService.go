@@ -18,14 +18,15 @@ import (
 
 // OwnershipDTO is a data transfer object used for transferring ownership information.
 type OwnershipDTO struct {
-	ID    string `bson:"_id,omitempty"` //Owner's or admin's ID
-	Email string `bson:"Email"`         //User he sends the invitation to.
+	ID        string `bson:"_id,omitempty"` //Owner's or admin's ID
+	Email     string `bson:"Email"`         //User he sends the invitation to.
+	CompanyID string `bson:"CompanyID"`
 }
 
 // InvitationDTO is a data transfer object used for transferring invitation information.
 type InvitationDTO struct {
-	Email string `bson:"Email"`
-	ID    string `bson:"_id,omitempty"`
+	Email     string `bson:"email,omitempty"`
+	CompanyID string `bson:"companyId,omitempty"`
 }
 
 // Using users id to check his role, we can send invitation to other users for them to join our organisation. Or accept ownership
@@ -56,6 +57,7 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 
 	if result.Role == "Owner" || result.Role == "Admin" {
 		//It is assumed the user is already in company. On front, the admin will only have list of those kind of users.
+
 		mail.SendOwnershipMail(ownership.Email, res)
 	} else {
 		json.NewEncoder(res).Encode("Only owners can transfer ownership.")
@@ -77,31 +79,20 @@ func FinaliseOwnershipTransfer(email string) error {
 
 // SendInvitation sends an invitation to the specified email address.
 func SendInvitation(res http.ResponseWriter, req *http.Request) {
-
 	var invitation InvitationDTO
 	decErr := json.NewDecoder(req.Body).Decode(&invitation)
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	json.NewEncoder(res).Encode(invitation)
-
 	//finding the user
-	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
-
-	filter := bson.M{"Email": invitation.Email}
-	var result model.ApplicationUser
-	err := collection.FindOne(context.Background(), filter).Decode(&result)
-	json.NewEncoder(res).Encode(result)
-	if err != nil {
-		log.Fatal(err)
-		if err == mongo.ErrNoDocuments {
-			json.NewEncoder(res).Encode("Didnt find user!")
-			return
+	user, found := conn.FindUserByMail(invitation.Email, res)
+	if found {
+		if user.Verified {
+			_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
+			//var id = pendingTable.InsertedID.(primitive.ObjectID)
+			mail.SendInvitationMail(id.Hex(), invitation.Email)
+		} else {
+			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
-	} else { //this is company id extracted from admins or owners profile
-
-		mail.SendInvitationMail(invitation.Email, invitation.ID)
-
 	}
-
 }

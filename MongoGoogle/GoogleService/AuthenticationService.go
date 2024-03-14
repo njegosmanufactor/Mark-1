@@ -26,7 +26,7 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(res, user)
 	} else {
-		data.SaveUserApplication(user.Email, user.FirstName, user.LastName, "", "", user.Email, "", true)
+		data.SaveUserApplication(user.Email, user.FirstName, user.LastName, "", "", user.Email, "", true, "Google")
 		t, _ := template.ParseFiles("Controller/pages/success.html")
 		t.Execute(res, user)
 	}

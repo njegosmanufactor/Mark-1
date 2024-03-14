@@ -78,20 +78,23 @@ func Mark1() {
 		var nill userType.GitHubData
 		gitService.LoggedinHandler(w, r, nill)
 	})
-	//Funkcija koju admin klikce, znaci treba da se u njenom body nalaze mail korisnika, i id kompanije.
+	//***************************
+	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.SendInvitation(res, req)
 	})
-	//funkcija koja ce da upisuje id kompanije u korisnikov profil u bazi
-	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) { //postman
+	//Link that users clicks in his mail message. Writes company id to his comany field.
+	r.HandleFunc("/inviteConfirmation/{id}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
-		companyID := vars["companyID"]
-		userID := vars["userID"]
-		applicationService.IncludeUserInCompany(companyID, userID, res)
+		transactionId := vars["id"]
+		applicationService.IncludeUserInCompany(transactionId, res)
 	})
+	//***************************
+	//Owner send mail to user which he intends to transfer ownership to. Body has owners id,company id and users email
 	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.TransferOwnership(res, req)
 	})
+	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
 	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
 		email := vars["email"]

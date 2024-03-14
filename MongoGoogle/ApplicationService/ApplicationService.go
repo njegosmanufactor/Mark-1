@@ -1,11 +1,13 @@
 package ApplicationService
 
 import (
+	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
 	data "MongoGoogle/Repository"
 	"context"
 	"encoding/base64"
-
+	"encoding/json"
+	"log"
 	"strings"
 
 	"fmt"
@@ -14,6 +16,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string) {
@@ -45,7 +49,7 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		fmt.Println("Username in use")
 		return
 	} else {
-		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false, "Application")
 		SendMail(email)
 		fmt.Println("Success")
 	}
@@ -87,13 +91,22 @@ func ExtractUserInfoFromToken(req *http.Request) bool {
 }
 
 // Includes the user in the company by updating the company ID in the user's document.
-func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
-	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"Email": email}
-	update := bson.M{"$set": bson.M{"Company": companyID}}
-	_, err := collection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
+func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
+
+	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
+	if iderr != nil {
+		log.Fatal(iderr)
 	}
-	return nil
+	filter := bson.M{"_id": requestIdentifier}
+	var result model.PendingRequest
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find user!")
+		}
+	}
+	//ubaciti usera u listu zaposlenih u kompaniji
+	conn.AddUserToCompany(result.CompanyID, result.Email, res)
 }

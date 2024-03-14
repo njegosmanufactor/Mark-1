@@ -70,4 +70,5 @@ type ApplicationUser struct {
 	Role        string             `bson:"Role"`
 	Verified    bool               `bson:"Verified"`
 	Authorised  bool               `bson:"Authorised"`
+	Provider    string             `bson:"Provider"`
 }

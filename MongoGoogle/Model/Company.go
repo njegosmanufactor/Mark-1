@@ -14,4 +14,6 @@ type Company struct {
 	Address               Location           `bson:"Address"`
 	Website               string             `bson:"Website"`
 	ListOfApprovedDomains []string           `bson:"Domains"`
+	Owner                 primitive.ObjectID `bson:"ownerId"`
+	Employees             []string           `bson:"Employees"`
 }
