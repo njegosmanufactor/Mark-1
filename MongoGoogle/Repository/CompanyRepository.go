@@ -13,16 +13,7 @@ import (
 
 // Saves a new company into the database.
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string) {
-	client = GetClient()
 	CompanyCollection := client.Database("UserDatabase").Collection("Company")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	// Creating user instance
 	company := model.Company{
 		Name:                  name,
@@ -42,18 +33,7 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 
 // Deletes a company from the database based on its name.
 func DeleteCompany(companyName string) {
-	client = GetClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	companyCollection := client.Database("UserDatabase").Collection("Company")
-
 	deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
 	if err != nil {
 		log.Fatal(err)
@@ -64,16 +44,7 @@ func DeleteCompany(companyName string) {
 
 // Checks if a company with the given name exists in the database.
 func ValidComapnyName(companyName string) bool {
-	client = GetClient()
 	UsersCollection := client.Database("UserDatabase").Collection("Company")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
 	filter := bson.M{"Name": companyName}
 	var result model.Company
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
@@ -88,19 +59,9 @@ func ValidComapnyName(companyName string) bool {
 
 // Sets the company for a user identified by userID in the database.
 func SetUserCompany(userID primitive.ObjectID, companyName string) error {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Company": companyName}}
-
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
