@@ -13,12 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Setting up the URL to connect to the MongoDB server
-// var Uri, _ = os.LookupEnv("MONGO_URI")
-/*var Uri = "mongodb+srv://Nikola045:Bombarder535@userdatabase.qcrmscd.mongodb.net/?retryWrites=true&w=majority&appName=UserDataBase"
-var ClientOptions = options.Client().ApplyURI(Uri)
-var Client, Err = mongo.Connect(context.Background(), ClientOptions)
-*/
 var (
 	uri           string
 	clientOptions *options.ClientOptions
@@ -40,23 +34,6 @@ func InitConnection() {
 // GetClient returns the MongoDB client for reuse in other packages
 func GetClient() *mongo.Client {
 	return client
-}
-
-// save user into database
-func SaveUserOther(email string) {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	// Creating user instance
-	user := model.OtherUser{
-		Email: email,
-	}
-
-	// Adding user to the database
-	insertResult, err := UsersCollection.InsertOne(context.Background(), user)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Added new user with ID:", insertResult.InsertedID)
 }
 
 func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
@@ -147,13 +124,7 @@ func VerifyUser(email string) bool {
 
 // SetUserRole updates the role of the user with the given user ID.
 func SetUserRole(userID primitive.ObjectID, role string) error {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Role": role}}
 
@@ -179,13 +150,7 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 }
 
 func SetAuthorise(userID primitive.ObjectID, authorised bool) error {
-	client, err := MongoConnection()
-	UsersCollection := client.Database("UserDatabase").Collection("Users")
-	defer func() {
-		if err = client.Disconnect(context.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Authorised": authorised}}
 

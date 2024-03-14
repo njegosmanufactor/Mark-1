@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"text/template"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -23,7 +22,7 @@ import (
 )
 
 // Handles user authentication using OAuth2 providers such as Google and Github.
-func Authentication() {
+func Mark1() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
 	var key, env_key_error = os.LookupEnv("GOOGLE_KEY")
 	if !env_key_error {
@@ -54,12 +53,6 @@ func Authentication() {
 	)
 
 	r := mux.NewRouter()
-
-	//Homepage display on path "https://localhost:3000"
-	r.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		t, _ := template.ParseFiles("Controller/pages/index.html")
-		t.Execute(res, false)
-	})
 
 	//Using google OAuth2 to authenticate user
 	r.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
@@ -103,16 +96,6 @@ func Authentication() {
 		vars := mux.Vars(req)
 		email := vars["email"]
 		ownerService.FinaliseOwnershipTransfer(email)
-	})
-
-	//Register page display
-	r.HandleFunc("/register.html", func(res http.ResponseWriter, req *http.Request) {
-		t, err := template.ParseFiles("Controller/pages/register.html")
-		if err != nil {
-			fmt.Fprintf(res, "Error parsing template: %v", err)
-			return
-		}
-		t.Execute(res, false)
 	})
 
 	//Our service that serves login functionality

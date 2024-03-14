@@ -17,5 +17,5 @@ func init() {
 
 func main() {
 	conn.InitConnection()
-	controller.Authentication()
+	controller.Mark1()
 }
