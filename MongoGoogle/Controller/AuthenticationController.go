@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
@@ -19,6 +20,7 @@ import (
 	userType "MongoGoogle/Model"
 	ownerService "MongoGoogle/OwnerService"
 	db "MongoGoogle/Repository"
+	tokenService "MongoGoogle/TokenService"
 )
 
 // Handles user authentication using OAuth2 providers such as Google and Github.
@@ -110,7 +112,53 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		applicationService.ApplicationLogin(requestBody.Email, requestBody.Password, req)
+		authHeader := req.Header.Get("Authorization")
+
+		//ako nema token
+		if authHeader == "" {
+			user, _ := db.GetUserData(requestBody.Email)
+			token, _ := tokenService.GenerateToken(user)
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(struct {
+				Token string `json:"token"`
+			}{
+				Token: token,
+			})
+		} else { //ako ima token
+			authHeader = tokenService.SplitTokenHeder(authHeader)
+			user, token, _ := tokenService.ExtractUserFromToken(authHeader)
+			if err != nil {
+				http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+				return
+			}
+
+			if token != nil && token.Valid {
+				// Token nije nil i važeći je
+				message := applicationService.ApplicationLogin(requestBody.Email, requestBody.Password)
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode(struct {
+					Message     string                   `json:"message"`
+					Token       *jwt.Token               `json:"token"`
+					CurrentUser userType.ApplicationUser `json:"user"`
+				}{
+					Message:     message,
+					Token:       token,
+					CurrentUser: user,
+				})
+			} else {
+				// Token je ili nil ili nevažeći
+				user, _ := db.GetUserData(requestBody.Email)
+				newToken, _ := tokenService.GenerateToken(user)
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode(struct {
+					Token string `json:"token"`
+				}{
+					Token: newToken,
+				})
+			}
+
+		}
+
 	})
 
 	//Our service that serves registration functionality
@@ -133,11 +181,15 @@ func Mark1() {
 	})
 
 	// Logs out the user with the specified email address.
-	r.HandleFunc("/logout/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/logout/{tokenString}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
-		email := vars["email"]
-		user, _ := db.GetUserData(email)
-		db.SetAuthorise(user.ID, false)
+		tokenString := vars["tokenString"]
+		user, token, err := tokenService.ExtractUserFromToken(tokenString)
+		if err != nil {
+			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+			return
+		}
+		token.Valid = false
 		fmt.Println("Logout" + " " + user.Email)
 	})
 
@@ -155,11 +207,15 @@ func Mark1() {
 	/////////////////////////////////  COMPANY    ///////////////////////////////////
 
 	// Registers a new company using the provided email address for authentication.
-	r.HandleFunc("/registerCompany/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/registerCompany/{token}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
-		email := vars["email"]
-		user, _ := db.GetUserData(email)
-		if user.Authorised {
+		token := vars["token"]
+		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
+		if err != nil {
+			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+			return
+		}
+		if tokenUser != nil && tokenUser.Valid {
 			var companyData struct {
 				Name                  string            `json:"name"`
 				Address               userType.Location `json:"location"`
@@ -179,6 +235,14 @@ func Mark1() {
 				db.SetUserRole(user.ID, "Owner")
 				db.SetUserCompany(user.ID, companyData.Name)
 				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains)
+				user, _ := db.GetUserData(user.Email)
+				token, _ := tokenService.GenerateToken(user)
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode(struct {
+					Token string `json:"token"`
+				}{
+					Token: token,
+				})
 			}
 		} else {
 			fmt.Println("User not found")
@@ -187,19 +251,24 @@ func Mark1() {
 	})
 
 	// Deletes the company associated with the provided email address.
-	r.HandleFunc("/deleteCompany/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/deleteCompany/{token}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
-		email := vars["email"]
-		user, _ := db.GetUserData(email)
+		token := vars["token"]
+		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
+		if err != nil {
+			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+			return
+		}
+
 		var requestBody struct {
 			CompanyName string `json:"companyName"`
 		}
-		err := json.NewDecoder(req.Body).Decode(&requestBody)
-		if err != nil {
+		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
+		if errReq != nil {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		if user.Company == requestBody.CompanyName && user.Authorised {
+		if tokenUser != nil && tokenUser.Valid {
 			if requestBody.CompanyName == "" {
 				http.Error(res, "Company name is required", http.StatusBadRequest)
 				return
@@ -207,6 +276,14 @@ func Mark1() {
 			db.SetUserCompany(user.ID, "")
 			db.SetUserRole(user.ID, "User")
 			db.DeleteCompany(requestBody.CompanyName)
+			user, _ := db.GetUserData(user.Email)
+			token, _ := tokenService.GenerateToken(user)
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(struct {
+				Token string `json:"token"`
+			}{
+				Token: token,
+			})
 		} else {
 			fmt.Println("You are not owner of" + requestBody.CompanyName)
 		}

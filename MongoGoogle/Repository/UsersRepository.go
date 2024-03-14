@@ -50,7 +50,6 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		Company:     "",
 		Role:        "User",
 		Verified:    verified,
-		Authorised:  false,
 	}
 
 	// Adding user to the database
@@ -147,17 +146,4 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	}
 
 	return result, nil
-}
-
-func SetAuthorise(userID primitive.ObjectID, authorised bool) error {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"_id": userID}
-	update := bson.M{"$set": bson.M{"Authorised": authorised}}
-
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

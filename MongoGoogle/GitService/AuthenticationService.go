@@ -12,6 +12,7 @@ import (
 	"os"
 )
 
+// LoggedinHandler validates if a GitHub user is registered in the database, and if not, it saves the user's GitHub username.
 func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType.GitHubData) {
 	// Validate user Username in database
 	if data.ValidEmail(githubData.Username) {
@@ -22,6 +23,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 	}
 }
 
+// GithubLoginHandler redirects the user to GitHub's OAuth authorization page.// GithubLoginHandler redirects the user to GitHub's OAuth authorization page.
 func GithubLoginHandler(w http.ResponseWriter, r *http.Request) {
 	githubClientID := GetGithubClientID()
 
