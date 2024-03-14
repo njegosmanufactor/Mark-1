@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,20 +13,12 @@ import (
 )
 
 func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType.GitHubData) {
-	if githubData.Id == 0 {
-		// Unauthorized users get an unauthorized message
-		fmt.Fprintf(w, "Unauthorised")
-		return
-	}
-
 	// Validate user Username in database
 	if data.ValidEmail(githubData.Username) {
-		t, _ := template.ParseFiles("Controller/pages/success.html")
-		t.Execute(w, githubData)
+		//If user have account
 	} else {
+		fmt.Println("Account created git")
 		data.SaveUserApplication(githubData.Username, githubData.Name, "", "", "", githubData.Username, "", true)
-		t, _ := template.ParseFiles("Controller/pages/success.html")
-		t.Execute(w, githubData)
 	}
 }
 

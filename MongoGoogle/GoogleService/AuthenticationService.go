@@ -3,7 +3,6 @@ package GoogleService
 import (
 	"fmt"
 	"net/http"
-	"text/template"
 
 	data "MongoGoogle/Repository"
 
@@ -23,12 +22,10 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 	}
 
 	if data.ValidEmail(user.Email) {
-		t, _ := template.ParseFiles("Controller/pages/success.html")
-		t.Execute(res, user)
+		// if user have account
 	} else {
+		fmt.Println("Account created google")
 		data.SaveUserApplication(user.Email, user.FirstName, user.LastName, "", "", user.Email, "", true)
-		t, _ := template.ParseFiles("Controller/pages/success.html")
-		t.Execute(res, user)
 	}
 }
 
