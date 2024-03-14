@@ -13,7 +13,7 @@ import (
 
 // Saves a new company into the database.
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string) {
-	client, err := MongoConnection()
+	client = GetClient()
 	CompanyCollection := client.Database("UserDatabase").Collection("Company")
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +42,7 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 
 // Deletes a company from the database based on its name.
 func DeleteCompany(companyName string) {
-	client, err := MongoConnection()
+	client = GetClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func DeleteCompany(companyName string) {
 
 // Checks if a company with the given name exists in the database.
 func ValidComapnyName(companyName string) bool {
-	client, err := MongoConnection()
+	client = GetClient()
 	UsersCollection := client.Database("UserDatabase").Collection("Company")
 	if err != nil {
 		log.Fatal(err)

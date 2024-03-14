@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"text/template"
 
 	"github.com/gorilla/mux"
@@ -24,8 +25,14 @@ import (
 // Handles user authentication using OAuth2 providers such as Google and Github.
 func Authentication() {
 	//Client secret created on google cloud platform/ Apis & Services / Credentials
-	key := "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"
-
+	var key, env_key_error = os.LookupEnv("GOOGLE_KEY")
+	if !env_key_error {
+		log.Fatal("Google key not defined in .env file")
+	}
+	var client_id, env_clientID_error = os.LookupEnv("GOOGLE_CLIENT_ID")
+	if !env_clientID_error {
+		log.Fatal("Google client id not defined in .env file")
+	}
 	//Time period over which the token is valid(or existant)
 	maxAge := 86400
 	isProd := false
@@ -43,7 +50,7 @@ func Authentication() {
 
 	//Creates provider for google using Client id and Client secret
 	goth.UseProviders(
-		google.New("261473284823-sh61p2obchbmdrq9pucc7s5oo9c8l98j.apps.googleusercontent.com", "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", "http://localhost:3000/auth/google/callback", "email", "profile"),
+		google.New(client_id, key, "http://localhost:3000/auth/google/callback", "email", "profile"),
 	)
 
 	r := mux.NewRouter()
@@ -79,20 +86,20 @@ func Authentication() {
 		gitService.LoggedinHandler(w, r, nill)
 	})
 	//Funkcija koju admin klikce, znaci treba da se u njenom body nalaze mail korisnika, i id kompanije.
-	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.SendInvitation(res, req)
 	})
 	//funkcija koja ce da upisuje id kompanije u korisnikov profil u bazi
-	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/inviteConfirmation/{companyID}/{userID}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
 		companyID := vars["companyID"]
 		userID := vars["userID"]
 		applicationService.IncludeUserInCompany(companyID, userID, res)
 	})
-	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.TransferOwnership(res, req)
 	})
-	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
 		email := vars["email"]
 		ownerService.FinaliseOwnershipTransfer(email)
@@ -124,7 +131,7 @@ func Authentication() {
 	})
 
 	//Our service that serves registration functionality
-	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) { //postman
 		var requestBody struct {
 			Email       string `json:"email"`
 			FirstName   string `json:"firstName"`
@@ -152,7 +159,7 @@ func Authentication() {
 	})
 
 	// Verifies the user with the specified email address.
-	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
 
 		vars := mux.Vars(req)
 		email := vars["email"]

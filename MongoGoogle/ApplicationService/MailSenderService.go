@@ -7,8 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/smtp"
+	"os"
 	"strings"
 	"text/template"
 
@@ -20,8 +22,10 @@ import (
 func SendMail(email string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
-	password := "cwcn trol loos svbr"
-
+	var password, pass_err = os.LookupEnv("GOOGLE_MAIL_PASSWORD")
+	if !pass_err {
+		log.Fatal("Google_mail_password not declared in .env file!")
+	}
 	// Receiver email address.
 	to := []string{
 		email,
@@ -60,7 +64,8 @@ func SendMail(email string) {
 
 // Sends an email for ownership transfer to the provided email address and sends a response if the user is not found.
 func SendOwnershipMail(email string, res http.ResponseWriter) {
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
@@ -72,8 +77,10 @@ func SendOwnershipMail(email string, res http.ResponseWriter) {
 	} else {
 		// Sender data.
 		from := "nemanja.ranitovic@manufactoryteam.io"
-		password := "cwcn trol loos svbr"
-
+		var password, pass_err = os.LookupEnv("GOOGLE_MAIL_PASSWORD")
+		if !pass_err {
+			log.Fatal("Google_mail_password not declared in .env file!")
+		}
 		// Receiver email address.
 		to := []string{
 			email,
@@ -114,8 +121,10 @@ func SendOwnershipMail(email string, res http.ResponseWriter) {
 func SendInvitationMail(email string, compnayID string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
-	password := "cwcn trol loos svbr"
-
+	var password, pass_err = os.LookupEnv("GOOGLE_MAIL_PASSWORD")
+	if !pass_err {
+		log.Fatal("Google_mail_password not declared in .env file!")
+	}
 	// Receiver email address.
 	to := []string{
 		email,

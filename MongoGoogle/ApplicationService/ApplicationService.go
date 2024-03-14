@@ -5,19 +5,18 @@ import (
 	data "MongoGoogle/Repository"
 	"context"
 	"encoding/base64"
-	"regexp"
+
 	"strings"
-	"time"
 
 	"fmt"
 	"net/http"
+	"regexp"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Registers a new user with the provided information, checks for required parameters, validates the date of birth, phone number format, and uniqueness of email and username before saving the user application.
 func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string) {
-
 	if email == "" || username == "" || password == "" || date == "" || phone == "" || firstName == "" || lastName == "" {
 		fmt.Println("Some required parameters are missing.")
 		return
@@ -37,8 +36,14 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		return
 	}
 	//Save user
-	if data.ValidEmail(email) || data.ValidUsername(username) {
-		fmt.Println("Username or Email in use")
+	fmt.Println(username)
+	if data.ValidEmail(email) {
+		fmt.Println("Email in use")
+		return
+	}
+	if data.ValidUsername(username) {
+		fmt.Println("Username in use")
+		return
 	} else {
 		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
 		SendMail(email)
@@ -83,7 +88,7 @@ func ExtractUserInfoFromToken(req *http.Request) bool {
 
 // Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
-	collection := conn.Client.Database("UserDatabase").Collection("Users")
+	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	update := bson.M{"$set": bson.M{"Company": companyID}}
 	_, err := collection.UpdateOne(context.Background(), filter, update)
