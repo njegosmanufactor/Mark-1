@@ -45,7 +45,6 @@ func DeleteCompany(companyName string) {
 
 // Checks if a company with the given name exists in the database.
 func ValidComapnyName(companyName string) bool {
-	client = GetClient()
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
 	filter := bson.M{"Name": companyName}
 	var result model.Company
@@ -64,7 +63,6 @@ func SetUserCompany(userID primitive.ObjectID, companyName string) error {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Company": companyName}}
-
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
