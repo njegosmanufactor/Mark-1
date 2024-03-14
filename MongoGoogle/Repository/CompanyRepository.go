@@ -105,7 +105,6 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 		}
 	}
 	update := bson.M{"$push": bson.M{"Employees": userEmail}}
-
 	// Perform the update operation
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {

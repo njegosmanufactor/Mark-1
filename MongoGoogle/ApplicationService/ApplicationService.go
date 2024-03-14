@@ -109,4 +109,12 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	}
 	//ubaciti usera u listu zaposlenih u kompaniji
 	conn.AddUserToCompany(result.CompanyID, result.Email, res)
+	//Azurirati completed na true
+	update := bson.M{"$set": bson.M{"Completed": true}}
+	// Perform the update operation
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		log.Fatal(err)
+		json.NewEncoder(res).Encode("Table not updated!")
+	}
 }
