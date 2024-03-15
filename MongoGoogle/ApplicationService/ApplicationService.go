@@ -1,9 +1,12 @@
 package ApplicationService
 
 import (
+	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
 	data "MongoGoogle/Repository"
 	"context"
+	"encoding/json"
+	"log"
 
 	"fmt"
 	"net/http"
@@ -11,6 +14,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // ApplicationRegister validates user input for registration and saves the application if valid, sending a verification email upon success.
@@ -43,7 +48,7 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		fmt.Println("Username in use")
 		return
 	} else {
-		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false, "Application")
 		SendMail(email)
 		fmt.Println("Success")
 	}
@@ -58,13 +63,32 @@ func ApplicationLogin(email string, password string) string {
 }
 
 // Includes the user in the company by updating the company ID in the user's document.
-func IncludeUserInCompany(companyID string, email string, res http.ResponseWriter) error {
-	collection := conn.GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"Email": email}
-	update := bson.M{"$set": bson.M{"Company": companyID}}
-	_, err := collection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
+func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
+
+	//Finding the right pending request
+	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
+	if iderr != nil {
+		log.Fatal(iderr)
 	}
-	return nil
+	filter := bson.M{"_id": requestIdentifier}
+	var result model.PendingRequest
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find request!")
+		}
+		log.Fatal(err)
+	}
+	//Inserts user to company employees field
+	conn.AddUserToCompany(result.CompanyID, result.Email, res)
+	//Updating pending request to completed
+	update := bson.M{"$set": bson.M{"Completed": true}}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+
+		json.NewEncoder(res).Encode("Table not updated!")
+		log.Fatal(err)
+	}
 }

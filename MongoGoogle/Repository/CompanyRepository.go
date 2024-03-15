@@ -3,8 +3,10 @@ package Repository
 import (
 	model "MongoGoogle/Model"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -71,4 +73,50 @@ func SetOwnerCompany(companyName string, userID string) error {
 	}
 
 	return nil
+}
+
+// Returns pair (company,bool). True if the company is found, false if not
+func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("Company")
+	userIdentifier, iderr := primitive.ObjectIDFromHex(companyId)
+	if iderr != nil {
+		log.Fatal(iderr)
+	}
+	filter := bson.M{"_id": userIdentifier}
+	var result model.Company
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find company!")
+			return result, false
+		}
+	}
+	return result, true
+}
+
+// Function that finds the right company and inserts users id to employees field
+func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.ResponseWriter) (model.Company, bool) {
+	//finding the company
+	collection := GetClient().Database("UserDatabase").Collection("Company")
+	filter := bson.M{"_id": companyId}
+	var result model.Company
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find company!")
+			return result, false
+		}
+	}
+	//Updating employees field with the right user
+	update := bson.M{"$push": bson.M{"Employees": userEmail}}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		log.Fatal(err)
+		json.NewEncoder(res).Encode("Company not updated!")
+		return result, false
+	}
+	json.NewEncoder(res).Encode("Company updated!")
+	return result, true
 }

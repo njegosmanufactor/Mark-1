@@ -15,5 +15,5 @@ type Company struct {
 	Website               string             `bson:"Website"`
 	ListOfApprovedDomains []string           `bson:"Domains"`
 	Owner                 primitive.ObjectID `bson:"OwnerId"`
-	Employess             []string           `bson:"Employess"`
+	Employees             []string           `bson:"Employees"`
 }

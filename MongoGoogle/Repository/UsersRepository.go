@@ -3,8 +3,10 @@ package Repository
 import (
 	model "MongoGoogle/Model"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -36,7 +38,7 @@ func GetClient() *mongo.Client {
 	return client
 }
 
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool, provider string) {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	// Creating user instance
 	user := model.ApplicationUser{
@@ -62,7 +64,6 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 
 // ValidUser checks if the user with the given email and password exists in the database.
 func ValidUser(email string, password string) bool {
-
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email, "Password": password}
 	var result model.ApplicationUser
@@ -103,7 +104,6 @@ func ValidUsername(username string) bool {
 	fmt.Println(result.Username)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			fmt.Println("Nema ni njega")
 			return false
 		}
 		fmt.Println(err)
@@ -125,7 +125,6 @@ func SetUserRole(userID primitive.ObjectID, role string) error {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": bson.M{"Role": role}}
-
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
@@ -145,4 +144,38 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	}
 
 	return result, nil
+}
+
+func FindUserByHex(hex string, res http.ResponseWriter) (model.ApplicationUser, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("Users")
+	userIdentifier, iderr := primitive.ObjectIDFromHex(hex)
+	if iderr != nil {
+		log.Fatal(iderr)
+	}
+	filter := bson.M{"_id": userIdentifier}
+	var result model.ApplicationUser
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find user!")
+			return result, false
+		}
+	}
+	return result, true
+}
+
+func FindUserByMail(mail string, res http.ResponseWriter) (model.ApplicationUser, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("Users")
+	filter := bson.M{"Email": mail}
+	var result model.ApplicationUser
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find user!")
+			return result, false
+		}
+	}
+	return result, true
 }
