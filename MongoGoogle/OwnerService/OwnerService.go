@@ -95,7 +95,6 @@ func FinaliseOwnershipTransfer(id string, res http.ResponseWriter) {
 				log.Fatal(err)
 			}
 		}
-
 		//update zahteva
 		requestFIlter := bson.M{"_id": transfer.ID}
 		updateRequest := bson.M{"$set": bson.M{"Completed": true}} // When asigning chage role to admin or user?s
@@ -124,7 +123,6 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
-			//var id = pendingTable.InsertedID.(primitive.ObjectID)
 			mail.SendInvitationMail(id.Hex(), invitation.Email)
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
