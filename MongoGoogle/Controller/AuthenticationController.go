@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -103,6 +104,7 @@ func Mark1() {
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
 	})
 
+	//REFAKTORISI ExtractUserFromToken
 	//Our service that serves login functionality
 	r.HandleFunc("/login", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
@@ -115,53 +117,57 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		authHeader := req.Header.Get("Authorization")
+		authHeader := req.Header.Get("Authorization") //dobijam token string
+		tokenString := tokenService.SplitTokenHeder(authHeader)
+		tokenPointer, _ := tokenService.ParseTokenString(tokenString)
+		fmt.Println(tokenPointer.Valid)
 
-		//ako nema token
-		if authHeader == "" {
-			user, _ := db.GetUserData(requestBody.Email)
-			token, _ := tokenService.GenerateToken(user)
+		if tokenString == "" {
+			fmt.Println("Nije autorizovano")
 			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(struct {
 				Token string `json:"token"`
 			}{
-				Token: token,
+				Token: "Unauthorised",
 			})
-		} else { //ako ima token
-			authHeader = tokenService.SplitTokenHeder(authHeader)
-			user, token, _ := tokenService.ExtractUserFromToken(authHeader)
-			if err != nil {
-				http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-				return
-			}
-
-			if token != nil && token.Valid {
-				// Token nije nil i važeći je
-				message := applicationService.ApplicationLogin(requestBody.Email, requestBody.Password)
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(struct {
-					Message     string                   `json:"message"`
-					Token       *jwt.Token               `json:"token"`
-					CurrentUser userType.ApplicationUser `json:"user"`
-				}{
-					Message:     message,
-					Token:       token,
-					CurrentUser: user,
-				})
+		} else {
+			if tokenService.VerifyTokenPointer(tokenPointer) {
+				if tokenPointer.Valid {
+					user, token, _ := tokenService.ExtractUserFromToken(tokenString)
+					if err != nil {
+						http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+						return
+					}
+					message := applicationService.ApplicationLogin(requestBody.Email, requestBody.Password)
+					res.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(res).Encode(struct {
+						Message     string                   `json:"message"`
+						Token       *jwt.Token               `json:"token"`
+						CurrentUser userType.ApplicationUser `json:"user"`
+					}{
+						Message:     message,
+						Token:       token,
+						CurrentUser: user,
+					})
+				} else {
+					user, _ := db.GetUserData(requestBody.Email)
+					token, _ := tokenService.GenerateToken(user, time.Hour)
+					res.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(res).Encode(struct {
+						Token string `json:"token"`
+					}{
+						Token: token,
+					})
+				}
 			} else {
-				// Token je ili nil ili nevažeći
-				user, _ := db.GetUserData(requestBody.Email)
-				newToken, _ := tokenService.GenerateToken(user)
 				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode(struct {
-					Token string `json:"token"`
+					Message string `json:"message"`
 				}{
-					Token: newToken,
+					Message: "Token not found",
 				})
 			}
-
 		}
-
 	})
 
 	//Our service that serves registration functionality
@@ -183,25 +189,25 @@ func Mark1() {
 		applicationService.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
 	})
 
-	//NE RADI
 	// Logs out the user with the specified email address.
 	r.HandleFunc("/logout", func(res http.ResponseWriter, req *http.Request) {
 		tokenString := req.Header.Get("Authorization")
 		tokenString = tokenService.SplitTokenHeder(tokenString)
-		user, token, err := tokenService.ExtractUserFromToken(tokenString)
+		user, _, err := tokenService.ExtractUserFromToken(tokenString)
 		if err != nil {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 			return
 		}
-		tokenService.SetTokenExpired(token)
+		//expiredToken := tokenService.SetTokenExpired(token)
 		fmt.Println("Logout" + " " + user.Email)
-		userLogout, _ := db.GetUserData(user.Email)
-		newToken, _ := tokenService.GenerateToken(userLogout)
+
+		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)
+
 		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(struct {
 			Token string `json:"token"`
 		}{
-			Token: newToken,
+			Token: tokenExpString,
 		})
 	})
 
@@ -248,7 +254,7 @@ func Mark1() {
 				db.SetOwnerCompany(companyData.Name, user.ID.String())
 				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains, user.ID)
 				user, _ := db.GetUserData(user.Email)
-				token, _ := tokenService.GenerateToken(user)
+				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode(struct {
 					Token string `json:"token"`
@@ -288,7 +294,7 @@ func Mark1() {
 			db.SetUserRole(user.ID, "User")
 			db.DeleteCompany(requestBody.CompanyName)
 			user, _ := db.GetUserData(user.Email)
-			token, _ := tokenService.GenerateToken(user)
+			token, _ := tokenService.GenerateToken(user, time.Hour)
 			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(struct {
 				Token string `json:"token"`

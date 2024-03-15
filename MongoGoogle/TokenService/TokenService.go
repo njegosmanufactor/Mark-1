@@ -15,8 +15,8 @@ var jwtKey = []byte("tajna_lozinka")
 // Korisnik predstavlja strukturu korisnika
 
 // GenerateToken generira JWT token na temelju korisničkih podataka
-func GenerateToken(user model.ApplicationUser) (string, error) {
-	tokenTTL := 1 * time.Hour // Token vredi 1 sat
+func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error) {
+	//tokenTTL := 1 * time.Minute // Token vredi 1 sat
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":          user.ID,
 		"email":       user.Email,
@@ -28,7 +28,7 @@ func GenerateToken(user model.ApplicationUser) (string, error) {
 		"password":    user.Password,
 		"role":        user.Role,
 		"verified":    user.Verified,
-		"exp":         time.Now().Add(tokenTTL).Unix(),
+		"exp":         time.Now().Add(exp).Unix(),
 	})
 
 	// Potpisivanje tokena
@@ -45,15 +45,38 @@ func SplitTokenHeder(authHeader string) string {
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "Invalid or missing Bearer token"
+		return ""
 	}
 	tokenString := parts[1]
 	return tokenString
 }
 
-func SetTokenExpired(token *jwt.Token) {
+func SetTokenExpired(token *jwt.Token) *jwt.Token {
 	token.Valid = false
 	token.Claims.(jwt.MapClaims)["exp"] = time.Now().Unix()
+	return token
+}
+
+func ParseTokenString(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtKey, nil
+	})
+	if err != nil {
+		return token, fmt.Errorf("Failed to parse token: %v", err)
+	}
+
+	return token, nil
+}
+
+func VerifyTokenPointer(token *jwt.Token) bool {
+	if token == nil {
+		return false
+	} else {
+		return true
+	}
 }
 
 // Extracts user information from the token in the request header.
@@ -61,7 +84,6 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 	var usererr model.ApplicationUser
 	var errtoken *jwt.Token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Provjera metode potpisivanja
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
@@ -95,7 +117,5 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 		Role:        claims["role"].(string),
 		Verified:    verified,
 	}
-
-	fmt.Println(user)
 	return user, token, nil
 }
