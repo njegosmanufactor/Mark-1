@@ -95,10 +95,10 @@ func Mark1() {
 		ownerService.TransferOwnership(res, req)
 	})
 	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
-	r.HandleFunc("/transferOwnership/feedback/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) { //postman
 		vars := mux.Vars(req)
-		email := vars["email"]
-		ownerService.FinaliseOwnershipTransfer(email)
+		transferId := vars["transferId"]
+		ownerService.FinaliseOwnershipTransfer(transferId, res)
 	})
 
 	//Our service that serves login functionality

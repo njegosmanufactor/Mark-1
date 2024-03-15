@@ -8,3 +8,10 @@ type PendingRequest struct {
 	CompanyID primitive.ObjectID `bson:"companyId,omitempty"`
 	Completed bool               `bson:"Completed"`
 }
+type PendingOwnershipTransfer struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Email     string             `bson:"Email,omitempty"`
+	CompanyID primitive.ObjectID `bson:"CompanyId,omitempty"`
+	OwnerID   primitive.ObjectID `bson:"OwnerId,omitempty"`
+	Completed bool               `bson:"Completed"`
+}

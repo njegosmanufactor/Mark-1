@@ -93,6 +93,7 @@ func ExtractUserInfoFromToken(req *http.Request) bool {
 // Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 
+	//Finding the right pending request
 	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
 	if iderr != nil {
@@ -102,19 +103,20 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	var result model.PendingRequest
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
+
 		if err == mongo.ErrNoDocuments {
-			json.NewEncoder(res).Encode("Didnt find user!")
+			json.NewEncoder(res).Encode("Didnt find request!")
 		}
+		log.Fatal(err)
 	}
-	//ubaciti usera u listu zaposlenih u kompaniji
+	//Inserts user to company employees field
 	conn.AddUserToCompany(result.CompanyID, result.Email, res)
-	//Azurirati completed na true
+	//Updating pending request to completed
 	update := bson.M{"$set": bson.M{"Completed": true}}
-	// Perform the update operation
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+
 		json.NewEncoder(res).Encode("Table not updated!")
+		log.Fatal(err)
 	}
 }

@@ -73,6 +73,7 @@ func SetUserCompany(userID primitive.ObjectID, companyName string) error {
 	return nil
 }
 
+// Returns pair (company,bool). True if the company is found, false if not
 func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Company")
 	userIdentifier, iderr := primitive.ObjectIDFromHex(companyId)
@@ -92,7 +93,9 @@ func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company,
 	return result, true
 }
 
+// Function that finds the right company and inserts users id to employees field
 func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.ResponseWriter) (model.Company, bool) {
+	//finding the company
 	collection := GetClient().Database("UserDatabase").Collection("Company")
 	filter := bson.M{"_id": companyId}
 	var result model.Company
@@ -104,8 +107,8 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 			return result, false
 		}
 	}
+	//Updating employees field with the right user
 	update := bson.M{"$push": bson.M{"Employees": userEmail}}
-	// Perform the update operation
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		log.Fatal(err)
