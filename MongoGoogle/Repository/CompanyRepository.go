@@ -24,7 +24,7 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 		Website:               website,
 		ListOfApprovedDomains: listOfApprovedDomains,
 		Owner:                 ownerId,
-		Employess:             make([]string, 0),
+		Employees:             make([]string, 0),
 	}
 
 	// Adding user to the database

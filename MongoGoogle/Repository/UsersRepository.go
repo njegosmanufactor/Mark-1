@@ -38,7 +38,7 @@ func GetClient() *mongo.Client {
 	return client
 }
 
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool, provider string) {
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	// Creating user instance
 	user := model.ApplicationUser{
