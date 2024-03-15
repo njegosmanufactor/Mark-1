@@ -16,7 +16,7 @@ var jwtKey = []byte("tajna_lozinka")
 
 // GenerateToken generira JWT token na temelju korisničkih podataka
 func GenerateToken(user model.ApplicationUser) (string, error) {
-	tokenTTL := 1 * time.Hour // Token vrijedi 1 sat, možete prilagoditi ovo prema potrebama
+	tokenTTL := 1 * time.Hour // Token vredi 1 sat
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":          user.ID,
 		"email":       user.Email,
@@ -26,7 +26,6 @@ func GenerateToken(user model.ApplicationUser) (string, error) {
 		"dateOfBirth": user.DateOfBirth,
 		"username":    user.Username,
 		"password":    user.Password,
-		"company":     user.Company,
 		"role":        user.Role,
 		"verified":    user.Verified,
 		"exp":         time.Now().Add(tokenTTL).Unix(),
@@ -52,7 +51,12 @@ func SplitTokenHeder(authHeader string) string {
 	return tokenString
 }
 
-// Extracts user information from the token in the request header and sets the user as authorized in the database.
+func SetTokenExpired(token *jwt.Token) {
+	token.Valid = false
+	token.Claims.(jwt.MapClaims)["exp"] = time.Now().Unix()
+}
+
+// Extracts user information from the token in the request header.
 func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token, error) {
 	var usererr model.ApplicationUser
 	var errtoken *jwt.Token
@@ -61,7 +65,7 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtKey, nil // jwtKey je globalna varijabla definirana u prethodnom primjeru
+		return jwtKey, nil
 	})
 	if err != nil {
 		return usererr, errtoken, fmt.Errorf("Failed to parse token: %v", err)
@@ -88,7 +92,6 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 		DateOfBirth: claims["dateOfBirth"].(string),
 		Username:    claims["username"].(string),
 		Password:    claims["password"].(string),
-		Company:     claims["company"].(string),
 		Role:        claims["role"].(string),
 		Verified:    verified,
 	}

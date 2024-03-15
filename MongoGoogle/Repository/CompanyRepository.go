@@ -12,7 +12,7 @@ import (
 )
 
 // Saves a new company into the database.
-func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string) {
+func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string, ownerId primitive.ObjectID) {
 	CompanyCollection := GetClient().Database("UserDatabase").Collection("Company")
 
 	// Creating user instance
@@ -21,6 +21,8 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 		Address:               location,
 		Website:               website,
 		ListOfApprovedDomains: listOfApprovedDomains,
+		Owner:                 ownerId,
+		Employess:             make([]string, 0),
 	}
 
 	// Adding user to the database
@@ -59,10 +61,10 @@ func ValidComapnyName(companyName string) bool {
 }
 
 // Sets the company for a user identified by userID in the database.
-func SetUserCompany(userID primitive.ObjectID, companyName string) error {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"_id": userID}
-	update := bson.M{"$set": bson.M{"Company": companyName}}
+func SetOwnerCompany(companyName string, userID string) error {
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
+	filter := bson.M{"Name": companyName}
+	update := bson.M{"$set": bson.M{"Owner": userID}}
 	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err

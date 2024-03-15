@@ -47,7 +47,6 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		DateOfBirth: date,
 		Username:    username,
 		Password:    password,
-		Company:     "",
 		Role:        "User",
 		Verified:    verified,
 	}

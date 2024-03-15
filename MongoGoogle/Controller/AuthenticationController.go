@@ -180,17 +180,26 @@ func Mark1() {
 		applicationService.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
 	})
 
+	//NE RADI
 	// Logs out the user with the specified email address.
-	r.HandleFunc("/logout/{tokenString}", func(res http.ResponseWriter, req *http.Request) {
-		vars := mux.Vars(req)
-		tokenString := vars["tokenString"]
+	r.HandleFunc("/logout", func(res http.ResponseWriter, req *http.Request) {
+		tokenString := req.Header.Get("Authorization")
+		tokenString = tokenService.SplitTokenHeder(tokenString)
 		user, token, err := tokenService.ExtractUserFromToken(tokenString)
 		if err != nil {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 			return
 		}
-		token.Valid = false
+		tokenService.SetTokenExpired(token)
 		fmt.Println("Logout" + " " + user.Email)
+		userLogout, _ := db.GetUserData(user.Email)
+		newToken, _ := tokenService.GenerateToken(userLogout)
+		res.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(res).Encode(struct {
+			Token string `json:"token"`
+		}{
+			Token: newToken,
+		})
 	})
 
 	// Verifies the user with the specified email address.
@@ -207,9 +216,9 @@ func Mark1() {
 	/////////////////////////////////  COMPANY    ///////////////////////////////////
 
 	// Registers a new company using the provided email address for authentication.
-	r.HandleFunc("/registerCompany/{token}", func(res http.ResponseWriter, req *http.Request) {
-		vars := mux.Vars(req)
-		token := vars["token"]
+	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
+		token := req.Header.Get("Authorization")
+		token = tokenService.SplitTokenHeder(token)
 		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
 		if err != nil {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
@@ -233,8 +242,8 @@ func Mark1() {
 				fmt.Printf("Company exist\n")
 			} else {
 				db.SetUserRole(user.ID, "Owner")
-				db.SetUserCompany(user.ID, companyData.Name)
-				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains)
+				db.SetOwnerCompany(companyData.Name, user.ID.String())
+				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains, user.ID)
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user)
 				res.Header().Set("Content-Type", "application/json")
@@ -251,9 +260,9 @@ func Mark1() {
 	})
 
 	// Deletes the company associated with the provided email address.
-	r.HandleFunc("/deleteCompany/{token}", func(res http.ResponseWriter, req *http.Request) {
-		vars := mux.Vars(req)
-		token := vars["token"]
+	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
+		token := req.Header.Get("Authorization")
+		token = tokenService.SplitTokenHeder(token)
 		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
 		if err != nil {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
@@ -273,7 +282,6 @@ func Mark1() {
 				http.Error(res, "Company name is required", http.StatusBadRequest)
 				return
 			}
-			db.SetUserCompany(user.ID, "")
 			db.SetUserRole(user.ID, "User")
 			db.DeleteCompany(requestBody.CompanyName)
 			user, _ := db.GetUserData(user.Email)
