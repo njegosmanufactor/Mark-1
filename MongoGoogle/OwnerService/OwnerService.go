@@ -22,8 +22,9 @@ type OwnershipDTO struct {
 
 // InvitationDTO is a data transfer object used for transferring invitation information.
 type InvitationDTO struct {
-	Email     string `bson:"email,omitempty"`
-	CompanyID string `bson:"companyId,omitempty"`
+	SenderID  primitive.ObjectID `bson:"senderId,omitempty"`
+	Email     string             `bson:"email,omitempty"`
+	CompanyID string             `bson:"companyId,omitempty"`
 }
 
 // Using users id to check his role, we can send invitation to other users for them to join our organisation. Or accept ownership
@@ -118,14 +119,25 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	//finding the user
-	user, found := conn.FindUserByMail(invitation.Email, res)
-	if found {
-		if user.Verified {
-			_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
-			mail.SendInvitationMail(id.Hex(), invitation.Email)
+	//finding the sender
+	sender, foundSender := conn.FindUserByHex(invitation.SenderID.Hex(), res)
+	if foundSender {
+		if sender.Role == "Admin" || sender.Role == "Owner" {
+			user, found := conn.FindUserByMail(invitation.Email, res)
+			if found {
+				if user.Verified {
+					_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
+					mail.SendInvitationMail(id.Hex(), invitation.Email)
+				} else {
+					json.NewEncoder(res).Encode("This user hasn't verified his account.")
+				}
+			}
 		} else {
-			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+			json.NewEncoder(res).Encode("Only owner or admin can invite other users!")
 		}
+	} else {
+		json.NewEncoder(res).Encode("Didnt find sender!")
 	}
+	//finding the user
+
 }

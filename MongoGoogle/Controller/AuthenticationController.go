@@ -129,8 +129,8 @@ func Mark1() {
 			})
 		} else { //ako ima token
 			authHeader = tokenService.SplitTokenHeder(authHeader)
-			user, token, _ := tokenService.ExtractUserFromToken(authHeader)
-			if err != nil {
+			user, token, tokenError := tokenService.ExtractUserFromToken(authHeader)
+			if tokenError != nil {
 				http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 				return
 			}
