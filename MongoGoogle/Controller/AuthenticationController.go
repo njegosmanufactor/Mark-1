@@ -81,7 +81,7 @@ func Mark1() {
 		var nill userType.GitHubData
 		gitService.LoggedinHandler(w, r, nill)
 	})
-	//***************************
+
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.SendInvitation(res, req)
@@ -92,7 +92,15 @@ func Mark1() {
 		transactionId := vars["id"]
 		applicationService.IncludeUserInCompany(transactionId, res)
 	})
-	//***************************
+	//Users request for changing forgotten password
+	r.HandleFunc("/forgotPassword", func(res http.ResponseWriter, req *http.Request) {
+		applicationService.PasswordChange(res, req)
+	})
+	r.HandleFunc("/forgotPassword/callback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		transferId := vars["transferId"]
+		applicationService.FinaliseForgottenPasswordUpdate(transferId, res, req)
+	})
 	//Owner send mail to user which he intends to transfer ownership to. Body has owners id,company id and users email
 	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) { //postman
 		ownerService.TransferOwnership(res, req)
@@ -133,8 +141,8 @@ func Mark1() {
 		} else {
 			if tokenService.VerifyTokenPointer(tokenPointer) {
 				if tokenPointer.Valid {
-					user, token, _ := tokenService.ExtractUserFromToken(tokenString)
-					if err != nil {
+					user, token, tokenErr := tokenService.ExtractUserFromToken(tokenString)
+					if tokenErr != nil {
 						http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 						return
 					}

@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -21,6 +22,15 @@ var (
 	client        *mongo.Client
 	err           error
 )
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	return string(bytes), err
+}
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
 
 // InitConnection initializes the MongoDB connection
 func InitConnection() {
@@ -65,7 +75,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 // ValidUser checks if the user with the given email and password exists in the database.
 func ValidUser(email string, password string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"Email": email, "Password": password}
+	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
@@ -74,19 +84,20 @@ func ValidUser(email string, password string) bool {
 		}
 		log.Fatal(err)
 	}
-	return true
+	if CheckPasswordHash(password, result.Password) {
+		return true
+	}
+	return false
 }
 
 // ValidEmail checks if the given email exists in the database.
 func ValidEmail(email string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	fmt.Println(UsersCollection.Name() + "mailcontroler")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			fmt.Println("Nema ga")
 			return false
 		}
 		fmt.Println(err)
@@ -97,11 +108,9 @@ func ValidEmail(email string) bool {
 // ValidUsername checks if the given username exists in the database.
 func ValidUsername(username string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	fmt.Println(UsersCollection.Name())
 	filter := bson.M{"Username": username}
 	var result model.ApplicationUser
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	fmt.Println(result.Username)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false
@@ -171,7 +180,6 @@ func FindUserByMail(mail string, res http.ResponseWriter) (model.ApplicationUser
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find user!")
 			return result, false

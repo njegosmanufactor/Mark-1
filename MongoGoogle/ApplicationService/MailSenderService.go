@@ -141,3 +141,45 @@ func SendInvitationMail(id string, email string) {
 	}
 	fmt.Println("Email Sent!")
 }
+
+func SendPasswordChangeLink(id string, email string) {
+	// Sender data.
+	from := "nemanja.ranitovic@manufactoryteam.io"
+	var password, pass_err = os.LookupEnv("GOOGLE_MAIL_PASSWORD")
+	if !pass_err {
+		log.Fatal("Google_mail_password not declared in .env file!")
+	}
+	// Receiver email address.
+	to := []string{
+		email,
+	}
+
+	// smtp server configuration.
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	t, _ := template.ParseFiles("Controller/pages/ChangePasswordTemplate.html")
+
+	var body bytes.Buffer
+
+	mimeHeaders := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	body.Write([]byte(fmt.Sprintf("Subject: Change password request \n%s\n\n", mimeHeaders)))
+	link := "http://localhost:3000/forgotPassword/callback/PAGETOREDIRECTTO/{id}"
+	link = strings.Replace(link, "{id}", id, 1)
+	t.Execute(&body, struct {
+		Message string
+	}{
+		Message: link,
+	})
+
+	// Sending email.
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Email Sent!")
+}

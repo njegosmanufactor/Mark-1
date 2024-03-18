@@ -15,3 +15,9 @@ type PendingOwnershipTransfer struct {
 	OwnerID   primitive.ObjectID `bson:"OwnerId,omitempty"`
 	Completed bool               `bson:"Completed"`
 }
+
+type PasswordChangeRequest struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Email     string             `bson:"Email,omitempty"`
+	Completed bool               `bson:"Completed"`
+}

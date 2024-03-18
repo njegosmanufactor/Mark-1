@@ -13,6 +13,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func CreatePasswordChangeRequest(email string) (model.PasswordChangeRequest, primitive.ObjectID) {
+	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	request := model.PasswordChangeRequest{
+		Email:     email,
+		Completed: false,
+	}
+	insertResult, err := RequestCollection.InsertOne(context.Background(), request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Added new request with ID:", insertResult.InsertedID)
+	id := insertResult.InsertedID.(primitive.ObjectID)
+	return request, id
+}
 func CreatePendingInvite(email string, companyId string) (model.PendingRequest, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	identifier, iderr := primitive.ObjectIDFromHex(companyId)
