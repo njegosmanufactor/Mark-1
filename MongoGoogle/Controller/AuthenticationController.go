@@ -31,6 +31,9 @@ func Mark1() {
 	r.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
 		gitService.GithubCallbackHandler(w, r)
 	})
+	// r.HandleFunc("/login/github/token/callback", func(w http.ResponseWriter, r *http.Request) {
+	// 	gitService.GithubTokenCallbackHandler(w, r)
+	// })
 
 	// Route where the authenticated user is redirected to
 	r.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
@@ -39,11 +42,11 @@ func Mark1() {
 	})
 
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
-	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
 		ownerService.SendInvitation(res, req)
 	})
 	//Link that users clicks in his mail message. Writes company id to his comany field.
-	r.HandleFunc("/inviteConfirmation/{id}", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/inviteConfirmation/{id}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transactionId := vars["id"]
 		applicationService.IncludeUserInCompany(transactionId, res)
@@ -58,11 +61,11 @@ func Mark1() {
 		applicationService.FinaliseForgottenPasswordUpdate(transferId, res, req)
 	})
 	//Owner send mail to user which he intends to transfer ownership to. Body has owners id,company id and users email
-	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
 		ownerService.TransferOwnership(res, req)
 	})
 	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
-	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
@@ -92,7 +95,7 @@ func Mark1() {
 	})
 
 	//Our service that serves registration functionality
-	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) { //postman
+	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
 			Email       string `json:"email"`
 			FirstName   string `json:"firstName"`
@@ -132,14 +135,12 @@ func Mark1() {
 	})
 
 	// Verifies the user with the specified email address.
-	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) { //postman
-
+	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		email := vars["email"]
 		if db.VerifyUser(email) {
 			fmt.Fprintf(res, email)
 		}
-
 	})
 
 	/////////////////////////////////  COMPANY    ///////////////////////////////////

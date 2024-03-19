@@ -17,7 +17,10 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 	// Validate user Username in database
 	if data.ValidEmail(githubData.Username) {
 		//If user have account
+		//Ovde vracaj bearer token
+		json.NewEncoder(w).Encode(githubData)
 	} else {
+		//ovde se registruje
 		fmt.Println("Account created git")
 		data.SaveUserApplication(githubData.Username, githubData.Name, "", "", "", githubData.Username, "", true, "GitHub")
 	}
@@ -28,16 +31,27 @@ func GithubLoginHandler(w http.ResponseWriter, r *http.Request) {
 	githubClientID := GetGithubClientID()
 
 	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s", githubClientID, "http://localhost:3000/login/github/callback")
-
+	fmt.Println("redirectURL")
+	fmt.Println(redirectURL)
 	http.Redirect(w, r, redirectURL, 301)
 
 }
 
-func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	githubAccessToken := GetGithubAccessToken(code)
+// func GithubTokenCallbackHandler(w http.ResponseWriter, r *http.Request) {
+// 	githubAccessToken := r.URL.Query().Get("access_token")
+// 	githubData := GetGithubData(githubAccessToken)
+// 	LoggedinHandler(w, r, githubData)
+// }
 
-	githubData := GetGithubData(githubAccessToken)
+func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	//Ovaj "access_token", mora da se preimenuje u "code" da bi se moglo gadjati preko fronta.
+	//Jedino ako moze u postmanu nekako da se querry parametar promeni sa access_token na code, ne bi ovde moralo da se menja
+	code := r.URL.Query().Get("access_token")
+	//Ovo je za generisanje koda kada se ne gadja postman. Iz postmana kod je direktno githubAccesstoken
+	//Kada se gadja preko postmana iz postmana se dobija taj kod.
+	//githubAccessToken := GetGithubAccessToken(code)
+	//githubData := GetGithubData(githubAccessToken)
+	githubData := GetGithubData(code)
 	LoggedinHandler(w, r, githubData)
 }
 
