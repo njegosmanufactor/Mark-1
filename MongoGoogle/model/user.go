@@ -58,14 +58,15 @@ type GoogleData struct {
 }
 
 type ApplicationUser struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	Email       string             `bson:"Email"`
-	FirstName   string             `bson:"FirstName"`
-	LastName    string             `bson:"LastName"`
-	Phone       string             `bson:"Phone"`
-	DateOfBirth string             `bson:"DateOfBirth"`
-	Username    string             `bson:"Username"`
-	Password    string             `bson:"Password"`
-	Role        string             `bson:"Role"`
-	Verified    bool               `bson:"Verified"`
+	ID                primitive.ObjectID `bson:"_id,omitempty"`
+	Email             string             `bson:"Email"`
+	FirstName         string             `bson:"FirstName"`
+	LastName          string             `bson:"LastName"`
+	Phone             string             `bson:"Phone"`
+	DateOfBirth       string             `bson:"DateOfBirth"`
+	Username          string             `bson:"Username"`
+	Password          string             `bson:"Password"`
+	Role              string             `bson:"Role"`
+	Verified          bool               `bson:"Verified"`
+	ApplicationMethod string             `bson:"ApplicationMethod"`
 }

@@ -38,19 +38,20 @@ func GetClient() *mongo.Client {
 	return client
 }
 
-func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool) {
+func SaveUserApplication(email string, firstName string, lastName string, phone string, date string, username string, password string, verified bool, applicationMethod string) {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	// Creating user instance
 	user := model.ApplicationUser{
-		Email:       email,
-		FirstName:   firstName,
-		LastName:    lastName,
-		Phone:       phone,
-		DateOfBirth: date,
-		Username:    username,
-		Password:    password,
-		Role:        "User",
-		Verified:    verified,
+		Email:             email,
+		FirstName:         firstName,
+		LastName:          lastName,
+		Phone:             phone,
+		DateOfBirth:       date,
+		Username:          username,
+		Password:          password,
+		Role:              "User",
+		Verified:          verified,
+		ApplicationMethod: applicationMethod,
 	}
 
 	// Adding user to the database
@@ -80,13 +81,11 @@ func ValidUser(email string, password string) bool {
 // ValidEmail checks if the given email exists in the database.
 func ValidEmail(email string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	fmt.Println(UsersCollection.Name() + "mailcontroler")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			fmt.Println("Nema ga")
 			return false
 		}
 		fmt.Println(err)

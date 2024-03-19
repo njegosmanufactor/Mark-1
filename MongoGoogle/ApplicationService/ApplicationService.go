@@ -48,7 +48,7 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		fmt.Println("Username in use")
 		return
 	} else {
-		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false)
+		data.SaveUserApplication(email, firstName, lastName, phone, date, username, password, false, "Application")
 		SendMail(email)
 		fmt.Println("Success")
 	}
