@@ -19,7 +19,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 		//If user have account
 	} else {
 		fmt.Println("Account created git")
-		data.SaveUserApplication(githubData.Username, githubData.Name, "", "", "", githubData.Username, "", true)
+		data.SaveUserApplication(githubData.Username, githubData.Name, "", "", "", githubData.Username, "", true, "GitHub")
 	}
 }
 

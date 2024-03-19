@@ -5,15 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/google"
 
 	applicationService "MongoGoogle/ApplicationService"
 	gitService "MongoGoogle/GitService"
@@ -24,47 +18,9 @@ import (
 	tokenService "MongoGoogle/TokenService"
 )
 
-// Handles user authentication using OAuth2 providers such as Google and Github.
 func Mark1() {
-	//Client secret created on google cloud platform/ Apis & Services / Credentials
-	var key, env_key_error = os.LookupEnv("GOOGLE_KEY")
-	if !env_key_error {
-		log.Fatal("Google key not defined in .env file")
-	}
-	var client_id, env_clientID_error = os.LookupEnv("GOOGLE_CLIENT_ID")
-	if !env_clientID_error {
-		log.Fatal("Google client id not defined in .env file")
-	}
-	//Time period over which the token is valid(or existant)
-	maxAge := 86400
-	isProd := false
-
-	store := sessions.NewCookieStore([]byte(key))
-	store.MaxAge(maxAge)
-	store.Options.Path = "/"
-
-	//On deafult should be enabled
-	store.Options.HttpOnly = true
-	//Enables or disables https protocol
-	store.Options.Secure = isProd
-
-	gothic.Store = store
-
-	//Creates provider for google using Client id and Client secret
-	goth.UseProviders(
-		google.New(client_id, key, "http://localhost:3000/auth/google/callback", "email", "profile"),
-	)
 
 	r := mux.NewRouter()
-
-	//Using google OAuth2 to authenticate user
-	r.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
-		gothic.BeginAuthHandler(res, req)
-	})
-
-	r.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
-		googleService.CompleteGoogleUserAuthentication(res, req)
-	})
 
 	//Github authentication paths
 	r.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +68,12 @@ func Mark1() {
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
 	})
 
-	//REFAKTORISI ExtractUserFromToken
+	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
+		accessToken := req.URL.Query().Get("access_token")
+		user := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
+		googleService.CompleteGoogleUserAuthentication(res, req, user)
+	})
+
 	//Our service that serves login functionality
 	r.HandleFunc("/login", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
@@ -125,57 +86,9 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		authHeader := req.Header.Get("Authorization") //dobijam token string
-		tokenString := tokenService.SplitTokenHeder(authHeader)
-		tokenPointer, _ := tokenService.ParseTokenString(tokenString)
-		fmt.Println(tokenPointer.Valid)
+		authHeader := req.Header.Get("Authorization")
+		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
 
-		if tokenString == "" {
-			fmt.Println("Nije autorizovano")
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(struct {
-				Token string `json:"token"`
-			}{
-				Token: "Unauthorised",
-			})
-		} else {
-			if tokenService.VerifyTokenPointer(tokenPointer) {
-				if tokenPointer.Valid {
-					user, token, tokenErr := tokenService.ExtractUserFromToken(tokenString)
-					if tokenErr != nil {
-						http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-						return
-					}
-					message := applicationService.ApplicationLogin(requestBody.Email, requestBody.Password)
-					res.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(res).Encode(struct {
-						Message     string                   `json:"message"`
-						Token       *jwt.Token               `json:"token"`
-						CurrentUser userType.ApplicationUser `json:"user"`
-					}{
-						Message:     message,
-						Token:       token,
-						CurrentUser: user,
-					})
-				} else {
-					user, _ := db.GetUserData(requestBody.Email)
-					token, _ := tokenService.GenerateToken(user, time.Hour)
-					res.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(res).Encode(struct {
-						Token string `json:"token"`
-					}{
-						Token: token,
-					})
-				}
-			} else {
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(struct {
-					Message string `json:"message"`
-				}{
-					Message: "Token not found",
-				})
-			}
-		}
 	})
 
 	//Our service that serves registration functionality
@@ -206,7 +119,6 @@ func Mark1() {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 			return
 		}
-		//expiredToken := tokenService.SetTokenExpired(token)
 		fmt.Println("Logout" + " " + user.Email)
 
 		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)

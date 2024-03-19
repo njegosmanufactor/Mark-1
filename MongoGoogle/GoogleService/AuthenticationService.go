@@ -1,31 +1,32 @@
 package GoogleService
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 
+	userType "MongoGoogle/Model"
 	data "MongoGoogle/Repository"
 
-	userType "MongoGoogle/Model"
+	oauth2v2 "google.golang.org/api/oauth2/v2"
 
 	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
 )
 
 // Completes the user authentication process using Google OAuth.
-func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request) {
-	tmpUser, err := gothic.CompleteUserAuth(res, req)
-	user := AddUserRole(&tmpUser)
-	if err != nil {
-		fmt.Fprintln(res, err)
-		return
-	}
-
+func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request, user *oauth2v2.Userinfo) {
 	if data.ValidEmail(user.Email) {
-		// if user have account
+		appUser, _ := data.GetUserData(user.Email)
+		if appUser.ApplicationMethod != "Google" {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(user.Email + " already exists")
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(user.Email + " successfully logged in to mark-1")
+		}
 	} else {
-		fmt.Println("Account created google")
-		data.SaveUserApplication(user.Email, user.FirstName, user.LastName, "", "", user.Email, "", true)
+		res.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(res).Encode(user.Email + " successfully registred to Mark-1")
+		data.SaveUserApplication(user.Email, user.GivenName, user.FamilyName, "", "", user.Email, "", true, "Google")
 	}
 }
 

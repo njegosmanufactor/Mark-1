@@ -2,12 +2,22 @@ package TokenService
 
 import (
 	model "MongoGoogle/Model"
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 	"time"
 
+	applicationService "MongoGoogle/ApplicationService"
+	db "MongoGoogle/Repository"
+
+	oauth2v2 "google.golang.org/api/oauth2/v2"
+
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/oauth2"
 )
 
 var jwtKey = []byte("tajna_lozinka")
@@ -18,17 +28,18 @@ var jwtKey = []byte("tajna_lozinka")
 func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error) {
 	//tokenTTL := 1 * time.Minute // Token vredi 1 sat
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":          user.ID,
-		"email":       user.Email,
-		"firstName":   user.FirstName,
-		"lastName":    user.LastName,
-		"phone":       user.Phone,
-		"dateOfBirth": user.DateOfBirth,
-		"username":    user.Username,
-		"password":    user.Password,
-		"role":        user.Role,
-		"verified":    user.Verified,
-		"exp":         time.Now().Add(exp).Unix(),
+		"id":                user.ID,
+		"email":             user.Email,
+		"firstName":         user.FirstName,
+		"lastName":          user.LastName,
+		"phone":             user.Phone,
+		"dateOfBirth":       user.DateOfBirth,
+		"username":          user.Username,
+		"password":          user.Password,
+		"role":              user.Role,
+		"verified":          user.Verified,
+		"applicationMethod": user.ApplicationMethod,
+		"exp":               time.Now().Add(exp).Unix(),
 	})
 
 	// Potpisivanje tokena
@@ -51,21 +62,15 @@ func SplitTokenHeder(authHeader string) string {
 	return tokenString
 }
 
-func SetTokenExpired(token *jwt.Token) *jwt.Token {
-	token.Valid = false
-	token.Claims.(jwt.MapClaims)["exp"] = time.Now().Unix()
-	return token
-}
-
 func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return jwtKey, nil
 	})
 	if err != nil {
-		return token, fmt.Errorf("Failed to parse token: %v", err)
+		return token, fmt.Errorf("failed to parse token: %v", err)
 	}
 
 	return token, nil
@@ -85,23 +90,17 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 	var errtoken *jwt.Token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return jwtKey, nil
 	})
 	if err != nil {
-		return usererr, errtoken, fmt.Errorf("Failed to parse token: %v", err)
+		return usererr, errtoken, fmt.Errorf("failed to parse token: %v", err)
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		fmt.Errorf("Invalid token claims")
-	}
+	claims, _ := token.Claims.(jwt.MapClaims)
 
-	verified, ok := claims["verified"].(bool)
-	if !ok {
-		fmt.Errorf("Invalid or missing 'verified' claim")
-	}
+	verified, _ := claims["verified"].(bool)
 
 	id, _ := primitive.ObjectIDFromHex(claims["id"].(string))
 	// Kreiranje ApplicationUser objekta
@@ -118,4 +117,66 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 		Verified:    verified,
 	}
 	return user, token, nil
+}
+
+func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader string, email string, password string) {
+
+	tokenString := SplitTokenHeder(authHeader)
+	tokenPointer, _ := ParseTokenString(tokenString)
+	message := applicationService.ApplicationLogin(email, password)
+
+	if tokenString == "" {
+		if message == "Success" {
+			user, _ := db.GetUserData(email)
+			token, _ := GenerateToken(user, time.Hour)
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(token)
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("Unauthorised")
+		}
+	} else {
+		if VerifyTokenPointer(tokenPointer) {
+			if tokenPointer.Valid {
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode(message)
+			} else {
+				if message == "Success" {
+					user, _ := db.GetUserData(email)
+					token, _ := GenerateToken(user, time.Hour)
+					res.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(res).Encode(token)
+				} else {
+					res.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(res).Encode(message)
+				}
+			}
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("Token not found")
+		}
+	}
+}
+
+func TokenGoogleLoginLogic(res http.ResponseWriter, req *http.Request, accessToken string) *oauth2v2.Userinfo {
+	if accessToken == "" {
+		http.Error(res, "Unauthorised", http.StatusBadRequest)
+		return nil
+	}
+	config := oauth2.Config{}
+	token := &oauth2.Token{AccessToken: accessToken}
+	ctx := context.Background()
+	client := config.Client(ctx, token)
+
+	service, err := oauth2v2.New(client)
+	if err != nil {
+		log.Fatalf("Error creating OAuth2 service: %v", err)
+	}
+
+	info, err := service.Userinfo.Get().Do()
+	if err != nil {
+		log.Fatalf("Error getting user info: %v", err)
+	}
+
+	return info
 }

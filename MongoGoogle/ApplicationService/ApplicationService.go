@@ -156,7 +156,7 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		if hashError != nil {
 			log.Panic(hashError)
 		}
-		conn.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false)
+		conn.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false, "Application")
 		SendMail(email)
 		fmt.Println("Success")
 	}
