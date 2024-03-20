@@ -41,7 +41,7 @@ func DeleteCompany(companyName string) {
 	companyCollection := GetClient().Database("UserDatabase").Collection("Company")
 	deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("aa")
 	}
 
 	fmt.Printf("Deleted company with name '%s'. Deleted count: %d\n", companyName, deleteResult.DeletedCount)
@@ -123,11 +123,10 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 
 func FindCompanyByName(companyName string, res http.ResponseWriter) (model.Company, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Company")
-	filter := bson.M{"_id": companyName}
+	filter := bson.M{"Name": companyName}
 	var result model.Company
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find company!")
 			return result, false
