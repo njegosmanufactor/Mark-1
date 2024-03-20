@@ -132,7 +132,7 @@ func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader s
 			json.NewEncoder(res).Encode("This is your bearer token for login: " + token)
 		} else {
 			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode("Unauthorised")
+			json.NewEncoder(res).Encode(message)
 		}
 	} else {
 		if VerifyTokenPointer(tokenPointer) {

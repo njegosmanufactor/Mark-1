@@ -164,11 +164,20 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 
 // Authenticates the user by verifying the email and password, and extracts user information from the token in the request header to set the user as authorized.
 func ApplicationLogin(email string, password string) string {
-	fmt.Println(password)
-	if !conn.ValidUser(email, password) {
-		return "Incorrect email or password"
+
+	if conn.FindUserEmail(email) {
+		user, _ := conn.GetUserData(email)
+		if user.ApplicationMethod != "Application" {
+			return "This account registrated by " + user.ApplicationMethod
+		}
+		if !conn.ValidUser(email, password) {
+			return "Incorrect email or password"
+		}
+		return "Success"
+	} else {
+		return "Email not exist"
 	}
-	return "Success"
+
 }
 
 // Includes the user in the company by updating the company ID in the user's document.
