@@ -70,8 +70,16 @@ func Mark1() {
 
 	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
 		accessToken := req.URL.Query().Get("access_token")
-		user := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
-		googleService.CompleteGoogleUserAuthentication(res, req, user)
+		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
+		googleService.CompleteGoogleUserAuthentication(res, req, googleUser)
+		user, _ := db.GetUserData(googleUser.Email)
+		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
+		if tokenString != "" {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(tokenString)
+		} else {
+		}
+
 	})
 
 	//Our service that serves login functionality
@@ -127,7 +135,7 @@ func Mark1() {
 		json.NewEncoder(res).Encode(struct {
 			Token string `json:"token"`
 		}{
-			Token: tokenExpString,
+			Token: user.Email + "Successfully logged out, this is your new bearer token: \n" + tokenExpString,
 		})
 	})
 
@@ -141,8 +149,6 @@ func Mark1() {
 		}
 
 	})
-
-	/////////////////////////////////  COMPANY    ///////////////////////////////////
 
 	// Registers a new company using the provided email address for authentication.
 	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
@@ -176,14 +182,11 @@ func Mark1() {
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(struct {
-					Token string `json:"token"`
-				}{
-					Token: token,
-				})
+				json.NewEncoder(res).Encode("You are successfully created new company: " + companyData.Name + ", this is your new bearer token\n" + token)
 			}
 		} else {
-			fmt.Println("User not found")
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("User not found")
 		}
 
 	})
@@ -216,13 +219,10 @@ func Mark1() {
 			user, _ := db.GetUserData(user.Email)
 			token, _ := tokenService.GenerateToken(user, time.Hour)
 			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(struct {
-				Token string `json:"token"`
-			}{
-				Token: token,
-			})
+			json.NewEncoder(res).Encode("You are successfully deleted company " + requestBody.CompanyName + ", this is your new bearer token\n" + token)
 		} else {
-			fmt.Println("You are not owner of" + requestBody.CompanyName)
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("You are not owner of" + requestBody.CompanyName)
 		}
 	})
 
