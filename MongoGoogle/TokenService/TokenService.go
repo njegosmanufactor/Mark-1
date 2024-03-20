@@ -103,7 +103,6 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 	verified, _ := claims["verified"].(bool)
 
 	id, _ := primitive.ObjectIDFromHex(claims["id"].(string))
-	// Kreiranje ApplicationUser objekta
 	user := model.ApplicationUser{
 		ID:          id,
 		Email:       claims["email"].(string),

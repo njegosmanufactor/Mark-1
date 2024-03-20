@@ -48,7 +48,7 @@ func DeleteCompany(companyName string) {
 }
 
 // Checks if a company with the given name exists in the database.
-func ValidComapnyName(companyName string) bool {
+func FindComapnyName(companyName string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
 	filter := bson.M{"Name": companyName}
 	var result model.Company
@@ -118,5 +118,20 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 		return result, false
 	}
 	json.NewEncoder(res).Encode("Company updated!")
+	return result, true
+}
+
+func FindCompanyByName(companyName string, res http.ResponseWriter) (model.Company, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("Company")
+	filter := bson.M{"_id": companyName}
+	var result model.Company
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find company!")
+			return result, false
+		}
+	}
 	return result, true
 }

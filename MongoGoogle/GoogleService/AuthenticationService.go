@@ -14,7 +14,7 @@ import (
 
 // Completes the user authentication process using Google OAuth.
 func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request, user *oauth2v2.Userinfo) {
-	if data.ValidEmail(user.Email) {
+	if data.FindUserEmail(user.Email) {
 		appUser, _ := data.GetUserData(user.Email)
 		if appUser.ApplicationMethod != "Google" {
 			res.Header().Set("Content-Type", "application/json")

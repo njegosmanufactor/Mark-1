@@ -144,11 +144,11 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		return
 	}
 	//Save user
-	if conn.ValidEmail(email) {
+	if conn.FindUserEmail(email) {
 		fmt.Println("Email in use")
 		return
 	}
-	if conn.ValidUsername(username) {
+	if conn.FindUserUsername(username) {
 		fmt.Println("Username in use")
 		return
 	} else {
