@@ -3,6 +3,7 @@ package GitService
 import (
 	userType "MongoGoogle/Model"
 	data "MongoGoogle/Repository"
+	tokenService "MongoGoogle/TokenService"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // LoggedinHandler validates if a GitHub user is registered in the database, and if not, it saves the user's GitHub username.
@@ -18,7 +20,11 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 	if data.ValidEmail(githubData.Username) {
 		//If user have account
 		//Ovde vracaj bearer token
+		user, _ := data.FindUserByMail(githubData.Username, w)
+		token, _ := tokenService.GenerateToken(user, time.Hour)
 		json.NewEncoder(w).Encode(githubData)
+		json.NewEncoder(w).Encode(token)
+
 	} else {
 		//ovde se registruje
 		fmt.Println("Account created git")
