@@ -92,7 +92,7 @@ func ValidUser(email string, password string) bool {
 }
 
 // ValidEmail checks if the given email exists in the database.
-func ValidEmail(email string) bool {
+func FindUserEmail(email string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": email}
 	var result model.ApplicationUser
@@ -107,7 +107,7 @@ func ValidEmail(email string) bool {
 }
 
 // ValidUsername checks if the given username exists in the database.
-func ValidUsername(username string) bool {
+func FindUserUsername(username string) bool {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Username": username}
 	var result model.ApplicationUser

@@ -73,8 +73,14 @@ func Mark1() {
 
 	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
 		accessToken := req.URL.Query().Get("access_token")
-		user := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
-		googleService.CompleteGoogleUserAuthentication(res, req, user)
+		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
+		googleService.CompleteGoogleUserAuthentication(res, req, googleUser)
+		user, _ := db.GetUserData(googleUser.Email)
+		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
+		if tokenString != "" {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(tokenString)
+		}
 	})
 
 	//Our service that serves login functionality
@@ -91,7 +97,6 @@ func Mark1() {
 		}
 		authHeader := req.Header.Get("Authorization")
 		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
-
 	})
 
 	//Our service that serves registration functionality
@@ -122,16 +127,10 @@ func Mark1() {
 			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
 			return
 		}
-		fmt.Println("Logout" + " " + user.Email)
-
 		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)
 
 		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode(struct {
-			Token string `json:"token"`
-		}{
-			Token: tokenExpString,
-		})
+		json.NewEncoder(res).Encode("Token:" + user.Email + "Successfully logged out, this is your new bearer token: " + tokenExpString)
 	})
 
 	// Verifies the user with the specified email address.
@@ -139,11 +138,9 @@ func Mark1() {
 		vars := mux.Vars(req)
 		email := vars["email"]
 		if db.VerifyUser(email) {
-			fmt.Fprintf(res, email)
+			fmt.Println(res, email)
 		}
 	})
-
-	/////////////////////////////////  COMPANY    ///////////////////////////////////
 
 	// Registers a new company using the provided email address for authentication.
 	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
@@ -168,7 +165,7 @@ func Mark1() {
 				return
 			}
 
-			if db.ValidComapnyName(companyData.Name) {
+			if db.FindComapnyName(companyData.Name) {
 				fmt.Printf("Company exist\n")
 			} else {
 				db.SetUserRole(user.ID, "Owner")
@@ -177,14 +174,11 @@ func Mark1() {
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(struct {
-					Token string `json:"token"`
-				}{
-					Token: token,
-				})
+				json.NewEncoder(res).Encode("You are successfully created new company: " + companyData.Name + ", this is your new bearer token: " + token)
 			}
 		} else {
-			fmt.Println("User not found")
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("User not found")
 		}
 
 	})
@@ -207,23 +201,28 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		if tokenUser != nil && tokenUser.Valid {
-			if requestBody.CompanyName == "" {
-				http.Error(res, "Company name is required", http.StatusBadRequest)
+		if requestBody.CompanyName == "" {
+			http.Error(res, "Company name is required", http.StatusBadRequest)
+			return
+		} else {
+			company, err := db.FindCompanyByName(requestBody.CompanyName, res)
+			if err == false {
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode("You don't have any company")
 				return
 			}
-			db.SetUserRole(user.ID, "User")
-			db.DeleteCompany(requestBody.CompanyName)
-			user, _ := db.GetUserData(user.Email)
-			token, _ := tokenService.GenerateToken(user, time.Hour)
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(struct {
-				Token string `json:"token"`
-			}{
-				Token: token,
-			})
-		} else {
-			fmt.Println("You are not owner of" + requestBody.CompanyName)
+			if tokenUser != nil && tokenUser.Valid && user.ID == company.Owner {
+				db.SetUserRole(user.ID, "User")
+				db.DeleteCompany(requestBody.CompanyName)
+				user, _ := db.GetUserData(user.Email)
+				token, _ := tokenService.GenerateToken(user, time.Hour)
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode("You are successfully deleted company " + requestBody.CompanyName + ", this is your new bearer token: " + token)
+			} else {
+				res.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(res).Encode("You are not owner of" + requestBody.CompanyName)
+			}
+
 		}
 	})
 

@@ -17,7 +17,7 @@ import (
 // LoggedinHandler validates if a GitHub user is registered in the database, and if not, it saves the user's GitHub username.
 func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType.GitHubData) {
 	// Validate user Username in database
-	if data.ValidEmail(githubData.Username) {
+	if data.FindUserEmail(githubData.Username) {
 		//If user have account
 		//Ovde vracaj bearer token
 		user, _ := data.FindUserByMail(githubData.Username, w)
