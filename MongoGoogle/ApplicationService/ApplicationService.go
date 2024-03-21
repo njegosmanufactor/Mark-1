@@ -53,16 +53,21 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	user, found := conn.FindUserByMail(passChangeDTO.Email, res)
-	if found {
-		if user.Verified {
-			_, id := conn.CreatePasswordChangeRequest(passChangeDTO.Email)
-			SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+	if user.ApplicationMethod == "Application" {
+		if found {
+			if user.Verified {
+				_, id := conn.CreatePasswordChangeRequest(passChangeDTO.Email)
+				SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+			} else {
+				json.NewEncoder(res).Encode("This user hasn't verified his account.")
+			}
 		} else {
-			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+			json.NewEncoder(res).Encode("Didnt find the user!")
 		}
 	} else {
-		json.NewEncoder(res).Encode("Didnt find the user!")
+		json.NewEncoder(res).Encode("You don't have permission for this. Your account provider is " + user.ApplicationMethod)
 	}
+
 }
 func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter, req *http.Request) {
 	var password NewPassword
