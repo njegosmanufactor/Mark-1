@@ -3,6 +3,7 @@ package ApplicationService
 import (
 	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
+
 	"context"
 	"encoding/json"
 	"log"
@@ -17,6 +18,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// InvitationDTO is a data transfer object used for transferring invitation information.
+type MagicDTO struct {
+	Email string `bson:"email,omitempty"`
+}
 
 type PasswordChangeDTO struct {
 	Email string `bson:"email"`
@@ -208,5 +214,22 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 
 		json.NewEncoder(res).Encode("Table not updated!")
 		log.Fatal(err)
+	}
+}
+
+func MagicLink(res http.ResponseWriter, req *http.Request) {
+	var magicLink MagicDTO
+	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
+	if decErr != nil {
+		http.Error(res, decErr.Error(), http.StatusBadRequest)
+	}
+	//finding the user
+	user, found := conn.FindUserByMail(magicLink.Email, res)
+	if found {
+		if user.Verified {
+			SendMagicLink(magicLink.Email)
+		} else {
+			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+		}
 	}
 }

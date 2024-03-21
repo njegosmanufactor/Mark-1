@@ -99,6 +99,25 @@ func Mark1() {
 		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
 	})
 
+	r.HandleFunc("/magicLink", func(res http.ResponseWriter, req *http.Request) {
+		applicationService.MagicLink(res, req)
+	})
+
+	r.HandleFunc("/confirmMagicLink", func(res http.ResponseWriter, req *http.Request) {
+		var requestBody struct {
+			email string `json:"email"`
+		}
+		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
+		if errReq != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		user, _ := db.GetUserData(requestBody.email)
+		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
+		res.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(res).Encode("This is your bearer token for login: " + tokenString)
+	})
+
 	//Our service that serves registration functionality
 	r.HandleFunc("/register", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
