@@ -35,12 +35,6 @@ func Mark1() {
 	// 	gitService.GithubTokenCallbackHandler(w, r)
 	// })
 
-	// Route where the authenticated user is redirected to
-	r.HandleFunc("/loggedin", func(w http.ResponseWriter, r *http.Request) {
-		var nill userType.GitHubData
-		gitService.LoggedinHandler(w, r, nill)
-	})
-
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
 		ownerService.SendInvitation(res, req)
