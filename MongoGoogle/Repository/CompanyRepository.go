@@ -16,6 +16,7 @@ import (
 // Saves a new company into the database.
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string, ownerId primitive.ObjectID) {
 	CompanyCollection := GetClient().Database("UserDatabase").Collection("Company")
+	UserCollection := GetClient().Database("UserDatabase").Collection("Users")
 
 	// Creating user instance
 	company := model.Company{
@@ -24,27 +25,60 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 		Website:               website,
 		ListOfApprovedDomains: listOfApprovedDomains,
 		Owner:                 ownerId,
-		Employees:             make([]string, 0),
+		Employees:             make([]model.Employee, 0),
 	}
-
+	var res http.ResponseWriter
+	user, _ := FindUserById(ownerId, res)
+	Employee := model.Employee{
+		Email: user.Email,
+		Role:  "Owner",
+	}
+	company.Employees = append(company.Employees, Employee)
 	// Adding user to the database
 	insertResult, err := CompanyCollection.InsertOne(context.Background(), company)
 	if err != nil {
 		log.Fatal(err)
 	}
+	filter := bson.M{"Email": user.Email}
+	Comp := model.Companies{
+		CompanyID: insertResult.InsertedID.(primitive.ObjectID),
+		Role:      "Owner",
+	}
+	update := bson.M{"$push": bson.M{"Companies": Comp}}
 
+	_, err = UserCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("Added new company with ID:", insertResult.InsertedID)
 }
 
 // Deletes a company from the database based on its name.
-func DeleteCompany(companyName string) {
+func DeleteCompany(companyName string, companyID primitive.ObjectID) {
 	companyCollection := GetClient().Database("UserDatabase").Collection("Company")
+	var res http.ResponseWriter
+	company, _ := FindCompanyByName(companyName, res)
+	for _, Employee := range company.Employees {
+		RemoveCompanyFromUser(Employee.Email, company.ID)
+	}
 	deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
 	if err != nil {
 		fmt.Println("aa")
 	}
 
 	fmt.Printf("Deleted company with name '%s'. Deleted count: %d\n", companyName, deleteResult.DeletedCount)
+}
+func RemoveCompanyFromUser(mail string, companyId primitive.ObjectID) {
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
+
+	filter := bson.M{"Email": mail}
+	update := bson.M{"$pull": bson.M{"Companies": bson.M{"_id": companyId}}}
+
+	_, err := UsersCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }
 
 // Checks if a company with the given name exists in the database.
@@ -60,19 +94,6 @@ func FindComapnyName(companyName string) bool {
 		log.Fatal(err)
 	}
 	return true
-}
-
-// Sets the company for a user identified by userID in the database.
-func SetOwnerCompany(companyName string, userID string) error {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
-	filter := bson.M{"Name": companyName}
-	update := bson.M{"$set": bson.M{"Owner": userID}}
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Returns pair (company,bool). True if the company is found, false if not
@@ -99,6 +120,7 @@ func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company,
 func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.ResponseWriter) (model.Company, bool) {
 	//finding the company
 	collection := GetClient().Database("UserDatabase").Collection("Company")
+	UserCollection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"_id": companyId}
 	var result model.Company
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
@@ -109,9 +131,24 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 			return result, false
 		}
 	}
+	User := model.Employee{
+		Email: userEmail,
+		Role:  "User",
+	}
 	//Updating employees field with the right user
-	update := bson.M{"$push": bson.M{"Employees": userEmail}}
+	update := bson.M{"$push": bson.M{"Employees": User}}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		fmt.Println(err)
+	}
+	userFilter := bson.M{"Email": userEmail}
+	Comp := model.Companies{
+		CompanyID: companyId,
+		Role:      "User",
+	}
+	update = bson.M{"$push": bson.M{"Companies": Comp}}
+	_, err = UserCollection.UpdateOne(context.Background(), userFilter, update)
+
 	if err != nil {
 		log.Fatal(err)
 		json.NewEncoder(res).Encode("Company not updated!")

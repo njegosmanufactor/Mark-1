@@ -27,6 +27,7 @@ func CreatePasswordChangeRequest(email string) (model.PasswordChangeRequest, pri
 	id := insertResult.InsertedID.(primitive.ObjectID)
 	return request, id
 }
+
 func CreatePendingInvite(email string, companyId string) (model.PendingRequest, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	identifier, iderr := primitive.ObjectIDFromHex(companyId)

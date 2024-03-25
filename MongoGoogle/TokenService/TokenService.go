@@ -36,7 +36,6 @@ func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error
 		"dateOfBirth":       user.DateOfBirth,
 		"username":          user.Username,
 		"password":          user.Password,
-		"role":              user.Role,
 		"verified":          user.Verified,
 		"applicationMethod": user.ApplicationMethod,
 		"exp":               time.Now().Add(exp).Unix(),
@@ -112,7 +111,6 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 		DateOfBirth: claims["dateOfBirth"].(string),
 		Username:    claims["username"].(string),
 		Password:    claims["password"].(string),
-		Role:        claims["role"].(string),
 		Verified:    verified,
 	}
 	return user, token, nil

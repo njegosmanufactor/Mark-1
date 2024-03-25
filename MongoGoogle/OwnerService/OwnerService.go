@@ -45,8 +45,9 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 		log.Fatal(iderr)
 	}
 	user, found := conn.FindUserByHex(ownership.OwnerID, res)
+	role := conn.DetermineUsersRoleWithinCompany(user, companyId)
 	if found {
-		if user.Role == "Owner" || user.Role == "Admin" {
+		if role == "Owner" {
 			//kreiramo zahtev(owner id comp id user mail) ovde i saljemo mejl(id zahteva)
 			_, transferId := conn.CreatePendingOwnershipInvitation(ownership.Email, ownerId, companyId)
 			mail.SendOwnershipMail(transferId.Hex(), ownership.Email, res)
@@ -65,9 +66,9 @@ func FinaliseOwnershipTransfer(id string, res http.ResponseWriter) {
 	transferCollection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	transfer, found := conn.FindOwnershipTransferByHex(id, res)
 	if found {
-		//update usera
-		userFilter := bson.M{"Email": transfer.Email}
-		updateUser := bson.M{"$set": bson.M{"Role": "Owner"}}
+		//update usera                                    //prolazi ako je korisnik vec user u firmi
+		userFilter := bson.M{"Email": transfer.Email, "Companies._id": transfer.CompanyID}
+		updateUser := bson.M{"$set": bson.M{"Companies.$.Role": "Owner"}}
 		result, err := userCollection.UpdateOne(context.Background(), userFilter, updateUser)
 		if result.MatchedCount == 0 {
 
@@ -75,8 +76,8 @@ func FinaliseOwnershipTransfer(id string, res http.ResponseWriter) {
 			log.Fatal(err)
 		}
 		//update vlasnika
-		ownerFilter := bson.M{"_id": transfer.OwnerID}
-		updateOwner := bson.M{"$set": bson.M{"Role": "User"}} // When asigning chage role to admin or user?s
+		ownerFilter := bson.M{"_id": transfer.OwnerID, "Companies._id": transfer.CompanyID}
+		updateOwner := bson.M{"$set": bson.M{"Companies.$.Role": "User"}} // When asigning chage role to admin or user?s
 		result, err = userCollection.UpdateOne(context.Background(), ownerFilter, updateOwner)
 		if result.MatchedCount == 0 {
 
@@ -87,13 +88,33 @@ func FinaliseOwnershipTransfer(id string, res http.ResponseWriter) {
 		companyFilter := bson.M{"_id": transfer.CompanyID}
 		user, found := conn.FindUserByMail(transfer.Email, res)
 		if found {
-			updateCompany := bson.M{"$set": bson.M{"Owner": user.ID}} // When asigning chage role to admin or user?s
+			updateCompany := bson.M{"$set": bson.M{"OwnerId": user.ID}} // When asigning chage role to admin or user?s
 			result, err = companyCollection.UpdateOne(context.Background(), companyFilter, updateCompany)
 			if result.MatchedCount == 0 {
 
 				json.NewEncoder(res).Encode("Owner role not updated")
 				log.Fatal(err)
 			}
+			companyEmployeeFilter := bson.M{"_id": transfer.CompanyID, "Employees.Email": transfer.Email}
+			updateCompanyOwner := bson.M{"$set": bson.M{"Employees.$.Role": "Owner"}}
+			result, err = companyCollection.UpdateOne(context.Background(), companyEmployeeFilter, updateCompanyOwner)
+			if result.MatchedCount == 0 {
+
+				json.NewEncoder(res).Encode("Owner role not updated")
+				log.Fatal(err)
+			}
+			owner, found := conn.FindUserById(transfer.OwnerID, res)
+			if found {
+				companyEmployeeOwnerFilter := bson.M{"_id": transfer.CompanyID, "Employees.Email": owner.Email}
+				updateCompanyEmployee := bson.M{"$set": bson.M{"Employees.$.Role": "User"}}
+				result, err = companyCollection.UpdateOne(context.Background(), companyEmployeeOwnerFilter, updateCompanyEmployee)
+				if result.MatchedCount == 0 {
+
+					json.NewEncoder(res).Encode("Owner role not updated")
+					log.Fatal(err)
+				}
+			}
+
 		}
 		//update zahteva
 		requestFIlter := bson.M{"_id": transfer.ID}
