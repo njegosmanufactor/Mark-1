@@ -43,20 +43,9 @@ func GithubLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// func GithubTokenCallbackHandler(w http.ResponseWriter, r *http.Request) {
-// 	githubAccessToken := r.URL.Query().Get("access_token")
-// 	githubData := GetGithubData(githubAccessToken)
-// 	LoggedinHandler(w, r, githubData)
-// }
-
+// Handles the callback from GitHub authentication.
 func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	//Ovaj "access_token", mora da se preimenuje u "code" da bi se moglo gadjati preko fronta.
-	//Jedino ako moze u postmanu nekako da se querry parametar promeni sa access_token na code, ne bi ovde moralo da se menja
 	code := r.URL.Query().Get("access_token")
-	//Ovo je za generisanje koda kada se ne gadja postman. Iz postmana kod je direktno githubAccesstoken
-	//Kada se gadja preko postmana iz postmana se dobija taj kod.
-	//githubAccessToken := GetGithubAccessToken(code)
-	//githubData := GetGithubData(githubAccessToken)
 	githubData := GetGithubData(code)
 	LoggedinHandler(w, r, githubData)
 }

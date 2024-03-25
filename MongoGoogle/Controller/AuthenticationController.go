@@ -31,9 +31,6 @@ func Mark1() {
 	r.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
 		gitService.GithubCallbackHandler(w, r)
 	})
-	// r.HandleFunc("/login/github/token/callback", func(w http.ResponseWriter, r *http.Request) {
-	// 	gitService.GithubTokenCallbackHandler(w, r)
-	// })
 
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
@@ -65,6 +62,7 @@ func Mark1() {
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
 	})
+	// Handles forgotten password update after callback.
 	r.HandleFunc("/forgotPassword/callback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
@@ -92,7 +90,7 @@ func Mark1() {
 		transferId := vars["transferId"]
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
 	})
-
+	// Handles Google login logic, completes user authentication, generates a token, and returns it.
 	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
 		accessToken := req.URL.Query().Get("access_token")
 		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
@@ -120,11 +118,11 @@ func Mark1() {
 		authHeader := req.Header.Get("Authorization")
 		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
 	})
-
+	// Initiates the process of sending a magic link for login without password.
 	r.HandleFunc("/magicLink", func(res http.ResponseWriter, req *http.Request) {
 		applicationService.MagicLink(res, req)
 	})
-
+	// Confirms the magic link for login and generates a token.
 	r.HandleFunc("/confirmMagicLink", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
 			Email string `json:"email"`
@@ -139,11 +137,11 @@ func Mark1() {
 		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(tokenString)
 	})
-
+	// Handles the request for a password-less login code.
 	r.HandleFunc("/passwordLessCode", func(res http.ResponseWriter, req *http.Request) {
 		applicationService.PasswordLessCode(res, req)
 	})
-
+	// Confirms the password-less login code and generates a token.
 	r.HandleFunc("/passwordLessCodeConfirm", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
 			RequestID string `json:"requestID"`

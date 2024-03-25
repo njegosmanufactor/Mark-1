@@ -156,6 +156,7 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	return result, nil
 }
 
+// FindUserByHex finds a user by its ID in the database and returns the user and a boolean indicating if it was found.
 func FindUserByHex(hex string, res http.ResponseWriter) (model.ApplicationUser, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Users")
 	userIdentifier, iderr := primitive.ObjectIDFromHex(hex)
@@ -175,6 +176,7 @@ func FindUserByHex(hex string, res http.ResponseWriter) (model.ApplicationUser, 
 	return result, true
 }
 
+// FindUserByMail finds a user by its email in the database and returns the user and a boolean indicating if it was found.
 func FindUserByMail(mail string, res http.ResponseWriter) (model.ApplicationUser, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": mail}

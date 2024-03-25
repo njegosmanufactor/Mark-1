@@ -142,6 +142,7 @@ func SendInvitationMail(id string, email string) {
 	fmt.Println("Email Sent!")
 }
 
+// Sends an email with a link for changing password to the provided email address.
 func SendPasswordChangeLink(id string, email string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
@@ -184,6 +185,7 @@ func SendPasswordChangeLink(id string, email string) {
 	fmt.Println("Email Sent!")
 }
 
+// Sends a magic link email for login without password to the provided email address.
 func SendMagicLink(email string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"
@@ -226,6 +228,7 @@ func SendMagicLink(email string) {
 	fmt.Println("Email Sent!")
 }
 
+// Sends an email with a password-less login code to the provided email address.
 func SendPasswordLessCode(email string, code string) {
 	// Sender data.
 	from := "nemanja.ranitovic@manufactoryteam.io"

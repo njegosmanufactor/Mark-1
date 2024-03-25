@@ -121,6 +121,7 @@ func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.R
 	return result, true
 }
 
+// Finds a company by its name in the database.
 func FindCompanyByName(companyName string, res http.ResponseWriter) (model.Company, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Company")
 	filter := bson.M{"Name": companyName}

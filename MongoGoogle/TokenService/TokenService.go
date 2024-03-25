@@ -22,11 +22,8 @@ import (
 
 var jwtKey = []byte("tajna_lozinka")
 
-// Korisnik predstavlja strukturu korisnika
-
-// GenerateToken generira JWT token na temelju korisničkih podataka
+// Generates a JWT token for the given user with a specified expiration time.
 func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error) {
-	//tokenTTL := 1 * time.Minute // Token vredi 1 sat
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":                user.ID,
 		"email":             user.Email,
@@ -42,7 +39,6 @@ func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error
 		"exp":               time.Now().Add(exp).Unix(),
 	})
 
-	// Potpisivanje tokena
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
 		return "", err
@@ -62,6 +58,7 @@ func SplitTokenHeder(authHeader string) string {
 	return tokenString
 }
 
+// Parses the JWT token string and returns the token object.
 func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -76,6 +73,7 @@ func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
+// Verifies if the token pointer exists and is not nil.
 func VerifyTokenPointer(token *jwt.Token) bool {
 	if token == nil {
 		return false
@@ -118,6 +116,7 @@ func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token
 	return user, token, nil
 }
 
+// Logic for handling user login via the application, including token verification and generation of a new one if needed.
 func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader string, email string, password string) {
 
 	tokenString := SplitTokenHeder(authHeader)
@@ -157,6 +156,7 @@ func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader s
 	}
 }
 
+// Logic for handling user login via Google OAuth authentication, including fetching user information using the access token.
 func TokenGoogleLoginLogic(res http.ResponseWriter, req *http.Request, accessToken string) *oauth2v2.Userinfo {
 	if accessToken == "" {
 		http.Error(res, "Unauthorised", http.StatusBadRequest)

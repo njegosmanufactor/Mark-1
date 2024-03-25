@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Creates a password change request in the database and returns the created request and its ID.
 func CreatePasswordChangeRequest(email string) (model.PasswordChangeRequest, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	request := model.PasswordChangeRequest{
@@ -27,6 +28,8 @@ func CreatePasswordChangeRequest(email string) (model.PasswordChangeRequest, pri
 	id := insertResult.InsertedID.(primitive.ObjectID)
 	return request, id
 }
+
+// Creates a pending invite request in the database and returns the created request and its ID.
 func CreatePendingInvite(email string, companyId string) (model.PendingRequest, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	identifier, iderr := primitive.ObjectIDFromHex(companyId)
@@ -49,6 +52,7 @@ func CreatePendingInvite(email string, companyId string) (model.PendingRequest, 
 	return request, id
 }
 
+// Creates a passwordless request in the database and returns the created request and its code.
 func CreatePasswordLessRequest(email string, code string) (model.PasswordLessRequest, string) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	// Creating request instance
@@ -66,6 +70,7 @@ func CreatePasswordLessRequest(email string, code string) (model.PasswordLessReq
 	return request, code
 }
 
+// Creates a pending ownership invitation request in the database and returns the created request and its ID.
 func CreatePendingOwnershipInvitation(email string, ownerId primitive.ObjectID, companyId primitive.ObjectID) (model.PendingOwnershipTransfer, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	// Creating request instance
@@ -85,6 +90,7 @@ func CreatePendingOwnershipInvitation(email string, ownerId primitive.ObjectID, 
 	return request, id
 }
 
+// Finds an ownership transfer request by its ID in the database and returns the request and a boolean indicating if it was found.
 func FindOwnershipTransferByHex(id string, res http.ResponseWriter) (model.PendingOwnershipTransfer, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(id)
@@ -104,6 +110,7 @@ func FindOwnershipTransferByHex(id string, res http.ResponseWriter) (model.Pendi
 	return result, true
 }
 
+// Finds a passwordless request by its ID in the database and returns the request and a boolean indicating if it was found.
 func FindCodeRequestByHex(id string, res http.ResponseWriter) (model.PasswordLessRequest, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(id)
@@ -123,6 +130,7 @@ func FindCodeRequestByHex(id string, res http.ResponseWriter) (model.PasswordLes
 	return result, true
 }
 
+// Deletes a pending request from the database based on its ID.
 func DeletePandingRequrst(id string) {
 	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(id)

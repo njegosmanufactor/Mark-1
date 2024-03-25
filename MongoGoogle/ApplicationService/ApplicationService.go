@@ -55,9 +55,7 @@ func generateRandomCode() string {
 	return strconv.Itoa(code)
 }
 
-// Treba da se kreira pending zahtev u kom ce da stoji completed i email korisnika koji zeli da promeni sifru.
-// Nakon kreiranja te tabele korisniku se u mejl salje link sa _id tog zahteva, da ne bi mogao da se unsese email preko putanje
-// Na taj nacin se onemogucuje da se promeni sifra bilo kog korisnika navodjenjem mejla
+// Validates user input for password change request, creates a pending request with a unique ID, and sends an email with a link to finalize the password change.
 func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	var passChangeDTO PasswordChangeDTO
 	decErr := json.NewDecoder(req.Body).Decode(&passChangeDTO)
@@ -81,6 +79,8 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	}
 
 }
+
+// Finalizes the forgotten password update by updating the user's password and marking the password change request as completed.
 func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter, req *http.Request) {
 	var password NewPassword
 	decErr := json.NewDecoder(req.Body).Decode(&password)
@@ -234,6 +234,7 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	}
 }
 
+// Initiates the process of sending a magic link for login without password.
 func MagicLink(res http.ResponseWriter, req *http.Request) {
 	var magicLink MagicDTO
 	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
@@ -251,6 +252,7 @@ func MagicLink(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Initiates the process of sending a password-less login code.
 func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 	var magicLink MagicDTO
 	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
