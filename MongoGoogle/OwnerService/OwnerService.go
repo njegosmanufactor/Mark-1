@@ -143,13 +143,8 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	user, found := conn.FindUserByMail(invitation.Email, res)
 	if found {
 		if user.Verified {
-			if user.Role != "User" {
-				_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
-				mail.SendInvitationMail(id.Hex(), invitation.Email)
-			} else {
-				json.NewEncoder(res).Encode("Only admins and owners can invite other users.")
-			}
-
+			_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
+			mail.SendInvitationMail(id.Hex(), invitation.Email)
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
