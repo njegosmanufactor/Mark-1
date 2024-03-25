@@ -129,7 +129,7 @@ func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader s
 			user, _ := db.GetUserData(email)
 			token, _ := GenerateToken(user, time.Hour)
 			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode("This is your bearer token for login: " + token)
+			json.NewEncoder(res).Encode(token)
 		} else {
 			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(message)
@@ -144,7 +144,7 @@ func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader s
 					user, _ := db.GetUserData(email)
 					token, _ := GenerateToken(user, time.Hour)
 					res.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(res).Encode("This is your bearer token for login: " + token)
+					json.NewEncoder(res).Encode(token)
 				} else {
 					res.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(res).Encode(message)

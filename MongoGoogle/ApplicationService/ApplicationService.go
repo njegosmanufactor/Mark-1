@@ -3,6 +3,8 @@ package ApplicationService
 import (
 	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
+	"math/rand"
+	"strconv"
 
 	"context"
 	"encoding/json"
@@ -24,6 +26,10 @@ type MagicDTO struct {
 	Email string `bson:"email,omitempty"`
 }
 
+type PasswordLessCodeDTO struct {
+	Code string `bson:"code,omitempty"`
+}
+
 type PasswordChangeDTO struct {
 	Email string `bson:"email"`
 }
@@ -41,6 +47,12 @@ func containsSpecialCharacters(input string) bool {
 	}
 
 	return false
+}
+
+func generateRandomCode() string {
+	rand.Seed(time.Now().UnixNano())
+	code := rand.Intn(999999)
+	return strconv.Itoa(code)
 }
 
 // Treba da se kreira pending zahtev u kom ce da stoji completed i email korisnika koji zeli da promeni sifru.
@@ -233,6 +245,25 @@ func MagicLink(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			SendMagicLink(magicLink.Email)
+		} else {
+			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+		}
+	}
+}
+
+func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
+	var magicLink MagicDTO
+	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
+	if decErr != nil {
+		http.Error(res, decErr.Error(), http.StatusBadRequest)
+	}
+	//finding the user
+	user, found := conn.FindUserByMail(magicLink.Email, res)
+	if found {
+		if user.Verified {
+			code := generateRandomCode()
+			conn.CreatePasswordLessRequest(magicLink.Email, code)
+			SendPasswordLessCode(magicLink.Email, code)
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}

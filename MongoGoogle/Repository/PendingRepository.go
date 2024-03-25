@@ -49,6 +49,23 @@ func CreatePendingInvite(email string, companyId string) (model.PendingRequest, 
 	return request, id
 }
 
+func CreatePasswordLessRequest(email string, code string) (model.PasswordLessRequest, string) {
+	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	// Creating request instance
+	request := model.PasswordLessRequest{
+		Email:     email,
+		Code:      code,
+		Completed: false,
+	}
+	// Adding request to the database
+	RequestCollection.InsertOne(context.Background(), request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("CODE: ", code)
+	return request, code
+}
+
 func CreatePendingOwnershipInvitation(email string, ownerId primitive.ObjectID, companyId primitive.ObjectID) (model.PendingOwnershipTransfer, primitive.ObjectID) {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
 	// Creating request instance
@@ -85,4 +102,33 @@ func FindOwnershipTransferByHex(id string, res http.ResponseWriter) (model.Pendi
 		log.Fatal(err)
 	}
 	return result, true
+}
+
+func FindCodeRequestByHex(id string, res http.ResponseWriter) (model.PasswordLessRequest, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	requestIdentifier, iderr := primitive.ObjectIDFromHex(id)
+	if iderr != nil {
+		log.Fatal(iderr)
+	}
+	filter := bson.M{"_id": requestIdentifier}
+	var result model.PasswordLessRequest
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find request!")
+			return result, false
+		}
+		log.Fatal(err)
+	}
+	return result, true
+}
+
+func DeletePandingRequrst(id string) {
+	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	requestIdentifier, iderr := primitive.ObjectIDFromHex(id)
+	if iderr != nil {
+		log.Fatal(iderr)
+	}
+	filter := bson.M{"_id": requestIdentifier}
+	collection.DeleteOne(context.Background(), filter)
 }
