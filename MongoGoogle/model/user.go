@@ -66,7 +66,11 @@ type ApplicationUser struct {
 	DateOfBirth       string             `bson:"DateOfBirth"`
 	Username          string             `bson:"Username"`
 	Password          string             `bson:"Password"`
-	Role              string             `bson:"Role"`
+	Companies         []Companies        `bson:"Companies"`
 	Verified          bool               `bson:"Verified"`
 	ApplicationMethod string             `bson:"ApplicationMethod"`
+}
+type Companies struct {
+	CompanyID primitive.ObjectID `bson:"_id,omitempty"`
+	Role      string             `bson:"Role"`
 }

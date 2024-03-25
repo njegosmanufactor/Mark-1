@@ -232,8 +232,6 @@ func Mark1() {
 			if db.FindComapnyName(companyData.Name) {
 				fmt.Printf("Company exist\n")
 			} else {
-				db.SetUserRole(user.ID, "Owner")
-				db.SetOwnerCompany(companyData.Name, user.ID.String())
 				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains, user.ID)
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
@@ -276,8 +274,7 @@ func Mark1() {
 				return
 			}
 			if tokenUser != nil && tokenUser.Valid && user.ID == company.Owner {
-				db.SetUserRole(user.ID, "User")
-				db.DeleteCompany(requestBody.CompanyName)
+				db.DeleteCompany(requestBody.CompanyName, company.ID)
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")

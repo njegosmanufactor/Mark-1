@@ -1,6 +1,13 @@
 package Model
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type Employee struct {
+	Email string `bson:"Email"`
+	Role  string `bson:"Role"`
+}
 
 type Location struct {
 	Country string `bson:"Country"`
@@ -15,5 +22,5 @@ type Company struct {
 	Website               string             `bson:"Website"`
 	ListOfApprovedDomains []string           `bson:"Domains"`
 	Owner                 primitive.ObjectID `bson:"OwnerId"`
-	Employees             []string           `bson:"Employees"`
+	Employees             []Employee         `bson:"Employees"`
 }
