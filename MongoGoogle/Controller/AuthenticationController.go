@@ -31,13 +31,18 @@ func Mark1() {
 	r.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
 		gitService.GithubCallbackHandler(w, r)
 	})
-	// r.HandleFunc("/login/github/token/callback", func(w http.ResponseWriter, r *http.Request) {
-	// 	gitService.GithubTokenCallbackHandler(w, r)
-	// })
 
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
-		ownerService.SendInvitation(res, req)
+		token := req.Header.Get("Authorization")
+		token = tokenService.SplitTokenHeder(token)
+		_, tokenUser, _ := tokenService.ExtractUserFromToken(token)
+		if tokenUser != nil && tokenUser.Valid {
+			ownerService.SendInvitation(res, req)
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("Session timed out or terminated")
+		}
 	})
 	//Link that users clicks in his mail message. Writes company id to his comany field.
 	r.HandleFunc("/inviteConfirmation/{id}", func(res http.ResponseWriter, req *http.Request) {
@@ -47,8 +52,17 @@ func Mark1() {
 	})
 	//Users request for changing forgotten password
 	r.HandleFunc("/forgotPassword", func(res http.ResponseWriter, req *http.Request) {
-		applicationService.PasswordChange(res, req)
+		token := req.Header.Get("Authorization")
+		token = tokenService.SplitTokenHeder(token)
+		_, tokenUser, _ := tokenService.ExtractUserFromToken(token)
+		if tokenUser != nil && tokenUser.Valid {
+			applicationService.PasswordChange(res, req)
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("Session timed out or terminated")
+		}
 	})
+	// Handles forgotten password update after callback.
 	r.HandleFunc("/forgotPassword/callback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
@@ -56,7 +70,19 @@ func Mark1() {
 	})
 	//Owner send mail to user which he intends to transfer ownership to. Body has owners id,company id and users email
 	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
-		ownerService.TransferOwnership(res, req)
+		token := req.Header.Get("Authorization")
+		token = tokenService.SplitTokenHeder(token)
+		_, tokenUser, err := tokenService.ExtractUserFromToken(token)
+		if err != nil {
+			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
+			return
+		}
+		if tokenUser != nil && tokenUser.Valid {
+			ownerService.TransferOwnership(res, req)
+		} else {
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode("Session timed out or terminated")
+		}
 	})
 	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
 	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
@@ -64,7 +90,7 @@ func Mark1() {
 		transferId := vars["transferId"]
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
 	})
-
+	// Handles Google login logic, completes user authentication, generates a token, and returns it.
 	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
 		accessToken := req.URL.Query().Get("access_token")
 		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
@@ -92,24 +118,49 @@ func Mark1() {
 		authHeader := req.Header.Get("Authorization")
 		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
 	})
-
+	// Initiates the process of sending a magic link for login without password.
 	r.HandleFunc("/magicLink", func(res http.ResponseWriter, req *http.Request) {
 		applicationService.MagicLink(res, req)
 	})
-
+	// Confirms the magic link for login and generates a token.
 	r.HandleFunc("/confirmMagicLink", func(res http.ResponseWriter, req *http.Request) {
 		var requestBody struct {
-			email string `json:"email"`
+			Email string `json:"email"`
 		}
 		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
 		if errReq != nil {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		user, _ := db.GetUserData(requestBody.email)
+		user, _ := db.GetUserData(requestBody.Email)
 		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
 		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode("This is your bearer token for login: " + tokenString)
+		json.NewEncoder(res).Encode(tokenString)
+	})
+	// Handles the request for a password-less login code.
+	r.HandleFunc("/passwordLessCode", func(res http.ResponseWriter, req *http.Request) {
+		applicationService.PasswordLessCode(res, req)
+	})
+	// Confirms the password-less login code and generates a token.
+	r.HandleFunc("/passwordLessCodeConfirm", func(res http.ResponseWriter, req *http.Request) {
+		var requestBody struct {
+			RequestID string `json:"requestID"`
+			Code      string `json:"code"`
+		}
+		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
+		if errReq != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		result, _ := db.FindCodeRequestByHex(requestBody.RequestID, res)
+		if requestBody.Code == result.Code {
+			user, _ := db.GetUserData(result.Email)
+			token, _ := tokenService.GenerateToken(user, time.Hour)
+			db.DeletePandingRequrst(requestBody.RequestID)
+			json.NewEncoder(res).Encode(token)
+		} else {
+			json.NewEncoder(res).Encode("Incorect code")
+		}
 	})
 
 	//Our service that serves registration functionality
@@ -143,7 +194,7 @@ func Mark1() {
 		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)
 
 		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode("Token:" + user.Email + "Successfully logged out, this is your new bearer token: " + tokenExpString)
+		json.NewEncoder(res).Encode(tokenExpString)
 	})
 
 	// Verifies the user with the specified email address.
@@ -185,7 +236,7 @@ func Mark1() {
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode("You are successfully created new company: " + companyData.Name + ", this is your new bearer token: " + token)
+				json.NewEncoder(res).Encode(token)
 			}
 		} else {
 			res.Header().Set("Content-Type", "application/json")
@@ -227,7 +278,7 @@ func Mark1() {
 				user, _ := db.GetUserData(user.Email)
 				token, _ := tokenService.GenerateToken(user, time.Hour)
 				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode("You are successfully deleted company " + requestBody.CompanyName + ", this is your new bearer token: " + token)
+				json.NewEncoder(res).Encode(token)
 			} else {
 				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode("You are not owner of" + requestBody.CompanyName)

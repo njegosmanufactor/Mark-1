@@ -3,6 +3,8 @@ package ApplicationService
 import (
 	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
+	"math/rand"
+	"strconv"
 
 	"context"
 	"encoding/json"
@@ -24,6 +26,10 @@ type MagicDTO struct {
 	Email string `bson:"email,omitempty"`
 }
 
+type PasswordLessCodeDTO struct {
+	Code string `bson:"code,omitempty"`
+}
+
 type PasswordChangeDTO struct {
 	Email string `bson:"email"`
 }
@@ -43,9 +49,13 @@ func containsSpecialCharacters(input string) bool {
 	return false
 }
 
-// Treba da se kreira pending zahtev u kom ce da stoji completed i email korisnika koji zeli da promeni sifru.
-// Nakon kreiranja te tabele korisniku se u mejl salje link sa _id tog zahteva, da ne bi mogao da se unsese email preko putanje
-// Na taj nacin se onemogucuje da se promeni sifra bilo kog korisnika navodjenjem mejla
+func generateRandomCode() string {
+	rand.Seed(time.Now().UnixNano())
+	code := rand.Intn(999999)
+	return strconv.Itoa(code)
+}
+
+// Validates user input for password change request, creates a pending request with a unique ID, and sends an email with a link to finalize the password change.
 func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	var passChangeDTO PasswordChangeDTO
 	decErr := json.NewDecoder(req.Body).Decode(&passChangeDTO)
@@ -69,6 +79,8 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	}
 
 }
+
+// Finalizes the forgotten password update by updating the user's password and marking the password change request as completed.
 func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter, req *http.Request) {
 	var password NewPassword
 	decErr := json.NewDecoder(req.Body).Decode(&password)
@@ -222,6 +234,7 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	}
 }
 
+// Initiates the process of sending a magic link for login without password.
 func MagicLink(res http.ResponseWriter, req *http.Request) {
 	var magicLink MagicDTO
 	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
@@ -233,6 +246,26 @@ func MagicLink(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			SendMagicLink(magicLink.Email)
+		} else {
+			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+		}
+	}
+}
+
+// Initiates the process of sending a password-less login code.
+func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
+	var magicLink MagicDTO
+	decErr := json.NewDecoder(req.Body).Decode(&magicLink)
+	if decErr != nil {
+		http.Error(res, decErr.Error(), http.StatusBadRequest)
+	}
+	//finding the user
+	user, found := conn.FindUserByMail(magicLink.Email, res)
+	if found {
+		if user.Verified {
+			code := generateRandomCode()
+			conn.CreatePasswordLessRequest(magicLink.Email, code)
+			SendPasswordLessCode(magicLink.Email, code)
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
