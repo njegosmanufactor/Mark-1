@@ -9,13 +9,13 @@ import (
 
 	"github.com/gorilla/mux"
 
-	applicationService "MongoGoogle/ApplicationService"
-	gitService "MongoGoogle/GitService"
-	googleService "MongoGoogle/GoogleService"
 	userType "MongoGoogle/Model"
-	ownerService "MongoGoogle/OwnerService"
 	db "MongoGoogle/Repository"
-	tokenService "MongoGoogle/TokenService"
+	applicationService "MongoGoogle/Service/ApplicationService"
+	gitService "MongoGoogle/Service/GitService"
+	googleService "MongoGoogle/Service/GoogleService"
+	ownerService "MongoGoogle/Service/OwnerService"
+	tokenService "MongoGoogle/Service/TokenService"
 )
 
 func Mark1() {
@@ -268,7 +268,7 @@ func Mark1() {
 			return
 		} else {
 			company, err := db.FindCompanyByName(requestBody.CompanyName, res)
-			if err == false {
+			if !err {
 				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode("You don't have any company")
 				return

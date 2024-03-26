@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	applicationService "MongoGoogle/ApplicationService"
 	db "MongoGoogle/Repository"
+	applicationService "MongoGoogle/Service/ApplicationService"
 
 	oauth2v2 "google.golang.org/api/oauth2/v2"
 
