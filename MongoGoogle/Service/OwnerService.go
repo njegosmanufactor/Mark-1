@@ -3,13 +3,10 @@ package Service
 import (
 	model "MongoGoogle/Model"
 	conn "MongoGoogle/Repository"
-	mail "MongoGoogle/Service/ApplicationService"
 	"context"
 	"encoding/json"
 	"log"
 	"net/http"
-
-	conn "MongoGoogle/Repository"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -56,7 +53,7 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 			//kreiramo zahtev(owner id comp id user mail) ovde i saljemo mejl(id zahteva)
 			_, transferId, created := conn.CreatePendingOwnershipInvitation(ownership.Email, ownerId, companyId)
 			if created {
-				mail.SendOwnershipMail(transferId.Hex(), ownership.Email, res)
+				SendOwnershipMail(transferId.Hex(), ownership.Email, res)
 			} else {
 				json.NewEncoder(res).Encode("Error on creating ownership invitation")
 			}
@@ -192,7 +189,7 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 		if user.Verified {
 			_, id, created := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
 			if created {
-				mail.SendInvitationMail(id.Hex(), invitation.Email)
+				SendInvitationMail(id.Hex(), invitation.Email)
 			} else {
 				json.NewEncoder(res).Encode("Error on creating pending invite")
 			}

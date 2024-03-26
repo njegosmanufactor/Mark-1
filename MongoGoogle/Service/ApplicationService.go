@@ -66,7 +66,7 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	if user.ApplicationMethod == "Application" {
 		if found {
 			if user.Verified {
-				_, id, created := conn.CreatePasswordChangeRequest(passChangeDTO.Email)
+				_, id, created := dataBase.CreatePasswordChangeRequest(passChangeDTO.Email)
 				if created {
 					SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
 				} else {
@@ -267,7 +267,7 @@ func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			code := generateRandomCode()
-			if !conn.CreatePasswordLessRequest(magicLink.Email, code) {
+			if !dataBase.CreatePasswordLessRequest(magicLink.Email, code) {
 				json.NewEncoder(res).Encode("Error on creading passwordless request")
 			} else {
 				SendPasswordLessCode(magicLink.Email, code)

@@ -18,7 +18,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 	// Validate user Username in database
 	user, found := data.FindUserByMail(githubData.Username, w)
 	if found {
-		token, _ := tokenService.GenerateToken(user, time.Hour)
+		token, _ := GenerateToken(user, time.Hour)
 		json.NewEncoder(w).Encode(token)
 	} else {
 		fmt.Println("Account created git")
