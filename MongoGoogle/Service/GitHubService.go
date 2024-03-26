@@ -1,9 +1,8 @@
-package GitService
+package Service
 
 import (
 	userType "MongoGoogle/Model"
 	data "MongoGoogle/Repository"
-	tokenService "MongoGoogle/Service/TokenService"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -21,7 +20,7 @@ func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType
 		//If user have account
 		//Ovde vracaj bearer token
 		user, _ := data.FindUserByMail(githubData.Username, w)
-		token, _ := tokenService.GenerateToken(user, time.Hour)
+		token, _ := GenerateToken(user, time.Hour)
 		json.NewEncoder(w).Encode(githubData)
 		json.NewEncoder(w).Encode(token)
 

@@ -10,12 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	dataBase "MongoGoogle/Repository"
-	applicationService "MongoGoogle/Service/ApplicationService"
-	companyService "MongoGoogle/Service/CompanyService"
-	gitService "MongoGoogle/Service/GitService"
-	googleService "MongoGoogle/Service/GoogleService"
-	ownerService "MongoGoogle/Service/OwnerService"
-	tokenService "MongoGoogle/Service/TokenService"
+	service "MongoGoogle/Service"
 )
 
 func Mark1() {
@@ -24,21 +19,19 @@ func Mark1() {
 
 	//Github authentication paths
 	r.HandleFunc("/login/github", func(w http.ResponseWriter, r *http.Request) {
-		gitService.GithubLoginHandler(w, r)
+		service.GithubLoginHandler(w, r)
 	})
 
 	// Github callback
 	r.HandleFunc("/login/github/callback", func(w http.ResponseWriter, r *http.Request) {
-		gitService.GithubCallbackHandler(w, r)
+		service.GithubCallbackHandler(w, r)
 	})
 
 	//Admin or owner sends invitation mail. Body requiers company id and user email.
 	r.HandleFunc("/sendInvitation", func(res http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
-		token = tokenService.SplitTokenHeder(token)
-		_, tokenUser, _ := tokenService.ExtractUserFromToken(token)
-		if tokenUser != nil && tokenUser.Valid {
-			ownerService.SendInvitation(res, req)
+		_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
+		if tokenpointer != nil && tokenpointer.Valid {
+			service.SendInvitation(res, req)
 		} else {
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
@@ -47,15 +40,14 @@ func Mark1() {
 	r.HandleFunc("/inviteConfirmation/{id}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transactionId := vars["id"]
-		applicationService.IncludeUserInCompany(transactionId, res)
+		service.IncludeUserInCompany(transactionId, res)
 	})
 	//Users request for changing forgotten password
 	r.HandleFunc("/forgotPassword", func(res http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
-		token = tokenService.SplitTokenHeder(token)
-		_, tokenUser, _ := tokenService.ExtractUserFromToken(token)
-		if tokenUser != nil && tokenUser.Valid {
-			applicationService.PasswordChange(res, req)
+		_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
+
+		if tokenpointer != nil && tokenpointer.Valid {
+			service.PasswordChange(res, req)
 		} else {
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
@@ -64,19 +56,14 @@ func Mark1() {
 	r.HandleFunc("/forgotPassword/callback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
-		applicationService.FinaliseForgottenPasswordUpdate(transferId, res, req)
+		service.FinaliseForgottenPasswordUpdate(transferId, res, req)
 	})
 	//Owner send mail to user which he intends to transfer ownership to. Body has owners id,company id and users email
 	r.HandleFunc("/trasferOwnership", func(res http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
-		token = tokenService.SplitTokenHeder(token)
-		_, tokenUser, err := tokenService.ExtractUserFromToken(token)
-		if err != nil {
-			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-			return
-		}
-		if tokenUser != nil && tokenUser.Valid {
-			ownerService.TransferOwnership(res, req)
+		_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
+
+		if tokenpointer != nil && tokenpointer.Valid {
+			service.TransferOwnership(res, req)
 		} else {
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
@@ -85,15 +72,15 @@ func Mark1() {
 	r.HandleFunc("/transferOwnership/feedataBaseack/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
-		ownerService.FinaliseOwnershipTransfer(transferId, res)
+		service.FinaliseOwnershipTransfer(transferId, res)
 	})
 	// Handles Google login logic, completes user authentication, generates a token, and returns it.
 	r.HandleFunc("/googleLogin", func(res http.ResponseWriter, req *http.Request) {
 		accessToken := req.URL.Query().Get("access_token")
-		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
-		googleService.CompleteGoogleUserAuthentication(res, req, googleUser)
+		googleUser := service.TokenGoogleLoginLogic(res, req, accessToken)
+		service.CompleteGoogleUserAuthentication(res, req, googleUser)
 		user, _ := dataBase.GetUserData(googleUser.Email)
-		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
+		tokenString, _ := service.GenerateToken(user, time.Hour)
 		if tokenString != "" {
 			json.NewEncoder(res).Encode(tokenString)
 		}
@@ -112,11 +99,11 @@ func Mark1() {
 			return
 		}
 		authHeader := req.Header.Get("Authorization")
-		tokenService.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
+		service.TokenAppLoginLogic(res, req, authHeader, requestBody.Email, requestBody.Password)
 	})
 	// Initiates the process of sending a magic link for login without password.
 	r.HandleFunc("/magicLink", func(res http.ResponseWriter, req *http.Request) {
-		applicationService.MagicLink(res, req)
+		service.MagicLink(res, req)
 	})
 	// Confirms the magic link for login and generates a token.
 	r.HandleFunc("/confirmMagicLink", func(res http.ResponseWriter, req *http.Request) {
@@ -129,12 +116,12 @@ func Mark1() {
 			return
 		}
 		user, _ := dataBase.GetUserData(requestBody.Email)
-		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
+		tokenString, _ := service.GenerateToken(user, time.Hour)
 		json.NewEncoder(res).Encode(tokenString)
 	})
 	// Handles the request for a password-less login code.
 	r.HandleFunc("/passwordLessCode", func(res http.ResponseWriter, req *http.Request) {
-		applicationService.PasswordLessCode(res, req)
+		service.PasswordLessCode(res, req)
 	})
 	// Confirms the password-less login code and generates a token.
 	r.HandleFunc("/passwordLessCodeConfirm", func(res http.ResponseWriter, req *http.Request) {
@@ -150,7 +137,7 @@ func Mark1() {
 		result, _ := dataBase.FindCodeRequestByHex(requestBody.RequestID, res)
 		if requestBody.Code == result.Code {
 			user, _ := dataBase.GetUserData(result.Email)
-			token, _ := tokenService.GenerateToken(user, time.Hour)
+			token, _ := service.GenerateToken(user, time.Hour)
 			dataBase.DeletePandingRequrst(requestBody.RequestID)
 			json.NewEncoder(res).Encode(token)
 		} else {
@@ -174,19 +161,13 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		applicationService.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
+		service.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
 	})
 
 	// Logs out the user with the specified email address.
 	r.HandleFunc("/logout", func(res http.ResponseWriter, req *http.Request) {
-		tokenString := req.Header.Get("Authorization")
-		tokenString = tokenService.SplitTokenHeder(tokenString)
-		user, _, err := tokenService.ExtractUserFromToken(tokenString)
-		if err != nil {
-			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-			return
-		}
-		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)
+		user, _ := service.GetUserAndPointerFromToken(res, req)
+		tokenExpString, _ := service.GenerateToken(user, time.Second)
 		json.NewEncoder(res).Encode(tokenExpString)
 	})
 
@@ -201,12 +182,12 @@ func Mark1() {
 
 	// Registers a new company using the provided email address for authentication.
 	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
-		companyService.CreateComapny(res, req)
+		service.CreateComapny(res, req)
 	})
 
 	// Deletes the company associated with the provided email address.
 	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
-		companyService.DeleteCompany(res, req)
+		service.DeleteCompany(res, req)
 	})
 
 	//Mux router listens for requests on port : 3000

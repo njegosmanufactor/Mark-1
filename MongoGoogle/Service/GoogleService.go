@@ -1,4 +1,4 @@
-package GoogleService
+package Service
 
 import (
 	"encoding/json"

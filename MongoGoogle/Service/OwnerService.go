@@ -1,4 +1,4 @@
-package OwnerService
+package Service
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	conn "MongoGoogle/Repository"
-	mail "MongoGoogle/Service/ApplicationService"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -50,7 +49,7 @@ func TransferOwnership(res http.ResponseWriter, req *http.Request) {
 		if role == "Owner" {
 			//kreiramo zahtev(owner id comp id user mail) ovde i saljemo mejl(id zahteva)
 			_, transferId := conn.CreatePendingOwnershipInvitation(ownership.Email, ownerId, companyId)
-			mail.SendOwnershipMail(transferId.Hex(), ownership.Email, res)
+			SendOwnershipMail(transferId.Hex(), ownership.Email, res)
 		} else {
 			json.NewEncoder(res).Encode("Only owners can transfer ownership.")
 		}
@@ -144,7 +143,7 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			_, id := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
-			mail.SendInvitationMail(id.Hex(), invitation.Email)
+			SendInvitationMail(id.Hex(), invitation.Email)
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
