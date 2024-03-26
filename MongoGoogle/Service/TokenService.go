@@ -1,7 +1,8 @@
-package TokenService
+package Service
 
 import (
 	model "MongoGoogle/Model"
+	dataBase "MongoGoogle/Repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,12 +12,11 @@ import (
 	"time"
 
 	db "MongoGoogle/Repository"
-	applicationService "MongoGoogle/Service/ApplicationService"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	oauth2v2 "google.golang.org/api/oauth2/v2"
 
 	"github.com/dgrijalva/jwt-go"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/oauth2"
 )
 
@@ -58,7 +58,7 @@ func SplitTokenHeder(authHeader string) string {
 }
 
 // Parses the JWT token string and returns the token object.
-func ParseTokenString(tokenString string) (*jwt.Token, error) {
+func ParseTokenString1(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -68,8 +68,21 @@ func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	if err != nil {
 		return token, fmt.Errorf("failed to parse token: %v", err)
 	}
-
 	return token, nil
+}
+
+func GetUserAndPointerFromToken(res http.ResponseWriter, req *http.Request) (model.ApplicationUser, *jwt.Token) {
+	token := req.Header.Get("Authorization")
+	token = SplitTokenHeder(token)
+	tokenpointer, _ := ParseTokenString1(token)
+	if tokenpointer == nil {
+		var user model.ApplicationUser
+		return user, nil
+	}
+	claims, _ := tokenpointer.Claims.(jwt.MapClaims)
+	userID, _ := primitive.ObjectIDFromHex(claims["id"].(string))
+	user, _ := dataBase.FindUserById(userID, res)
+	return user, tokenpointer
 }
 
 // Verifies if the token pointer exists and is not nil.
@@ -81,47 +94,12 @@ func VerifyTokenPointer(token *jwt.Token) bool {
 	}
 }
 
-// Extracts user information from the token in the request header.
-func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token, error) {
-	var usererr model.ApplicationUser
-	var errtoken *jwt.Token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return jwtKey, nil
-	})
-	if err != nil {
-		return usererr, errtoken, fmt.Errorf("failed to parse token: %v", err)
-	}
-
-	claims, _ := token.Claims.(jwt.MapClaims)
-
-	verified, _ := claims["verified"].(bool)
-
-	id, _ := primitive.ObjectIDFromHex(claims["id"].(string))
-	user := model.ApplicationUser{
-		ID:          id,
-		Email:       claims["email"].(string),
-		FirstName:   claims["firstName"].(string),
-		LastName:    claims["lastName"].(string),
-		Phone:       claims["phone"].(string),
-		DateOfBirth: claims["dateOfBirth"].(string),
-		Username:    claims["username"].(string),
-		Password:    claims["password"].(string),
-		Verified:    verified,
-	}
-	return user, token, nil
-}
-
 // Logic for handling user login via the application, including token verification and generation of a new one if needed.
 func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader string, email string, password string) {
+	_, tokenPointer := GetUserAndPointerFromToken(res, req)
+	message := ApplicationLogin(email, password)
 
-	tokenString := SplitTokenHeder(authHeader)
-	tokenPointer, _ := ParseTokenString(tokenString)
-	message := applicationService.ApplicationLogin(email, password)
-
-	if tokenString == "" {
+	if tokenPointer == nil {
 		if message == "Success" {
 			user, _ := db.GetUserData(email)
 			token, _ := GenerateToken(user, time.Hour)

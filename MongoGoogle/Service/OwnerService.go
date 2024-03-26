@@ -1,4 +1,4 @@
-package OwnerService
+package Service
 
 import (
 	model "MongoGoogle/Model"
@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	conn "MongoGoogle/Repository"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

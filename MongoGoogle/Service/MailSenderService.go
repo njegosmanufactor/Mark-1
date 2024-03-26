@@ -1,4 +1,4 @@
-package ApplicationService
+package Service
 
 import (
 	"bytes"

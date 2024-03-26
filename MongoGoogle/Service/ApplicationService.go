@@ -1,8 +1,8 @@
-package ApplicationService
+package Service
 
 import (
 	model "MongoGoogle/Model"
-	conn "MongoGoogle/Repository"
+	dataBase "MongoGoogle/Repository"
 	"math/rand"
 	"strconv"
 
@@ -62,7 +62,7 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	user, found := conn.FindUserByMail(passChangeDTO.Email, res)
+	user, found := dataBase.FindUserByMail(passChangeDTO.Email, res)
 	if user.ApplicationMethod == "Application" {
 		if found {
 			if user.Verified {
@@ -95,8 +95,9 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 		json.NewEncoder(res).Encode("Passwords dont match!")
 		return
 	}
-	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
-	userCollection := conn.GetClient().Database("UserDatabase").Collection("Users")
+
+	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	userCollection := dataBase.GetClient().Database("UserDatabase").Collection("Users")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(transferId)
 	if iderr != nil {
 		log.Fatal(iderr)
@@ -112,7 +113,7 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 		log.Fatal(err)
 	}
 	//Updating the password field in user
-	NewPassword, _ := conn.HashPassword(password.Password)
+	NewPassword, _ := dataBase.HashPassword(password.Password)
 	userUpdate := bson.M{"$set": bson.M{"Password": NewPassword}}
 	userFilter := bson.M{"Email": result.Email}
 	_, userErr := userCollection.UpdateOne(context.Background(), userFilter, userUpdate)
@@ -171,19 +172,19 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		return
 	}
 	//Save user
-	if conn.FindUserEmail(email) {
+	if dataBase.FindUserEmail(email) {
 		fmt.Println("Email in use")
 		return
 	}
-	if conn.FindUserUsername(username) {
+	if dataBase.FindUserUsername(username) {
 		fmt.Println("Username in use")
 		return
 	} else {
-		hashedPass, hashError := conn.HashPassword(password)
+		hashedPass, hashError := dataBase.HashPassword(password)
 		if hashError != nil {
 			log.Panic(hashError)
 		}
-		conn.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false, "Application")
+		dataBase.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false, "Application")
 		SendMail(email)
 		fmt.Println("Success")
 	}
@@ -192,12 +193,12 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 // Authenticates the user by verifying the email and password, and extracts user information from the token in the request header to set the user as authorized.
 func ApplicationLogin(email string, password string) string {
 
-	if conn.FindUserEmail(email) {
-		user, _ := conn.GetUserData(email)
+	if dataBase.FindUserEmail(email) {
+		user, _ := dataBase.GetUserData(email)
 		if user.ApplicationMethod != "Application" {
 			return "This account registrated by " + user.ApplicationMethod
 		}
-		if !conn.ValidUser(email, password) {
+		if !dataBase.ValidUser(email, password) {
 			return "Incorrect email or password"
 		}
 		return "Success"
@@ -210,7 +211,7 @@ func ApplicationLogin(email string, password string) string {
 // Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	//Finding the right pending request
-	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
 	if iderr != nil {
 		log.Fatal(iderr)
@@ -226,14 +227,13 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 		log.Fatal(err)
 	}
 	//Inserts user to company employees field
-	conn.AddUserToCompany(result.CompanyID, result.Email, res)
+	AddUserToCompany(result.CompanyID, result.Email, res)
 	//Updating pending request to completed
 	update := bson.M{"$set": bson.M{"Completed": true}}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 
 		json.NewEncoder(res).Encode("Table not updated!")
-		log.Fatal(err)
 	}
 }
 
@@ -245,7 +245,7 @@ func MagicLink(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	//finding the user
-	user, found := conn.FindUserByMail(magicLink.Email, res)
+	user, found := dataBase.FindUserByMail(magicLink.Email, res)
 	if found {
 		if user.Verified {
 			SendMagicLink(magicLink.Email)
@@ -263,7 +263,7 @@ func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	//finding the user
-	user, found := conn.FindUserByMail(magicLink.Email, res)
+	user, found := dataBase.FindUserByMail(magicLink.Email, res)
 	if found {
 		if user.Verified {
 			code := generateRandomCode()
