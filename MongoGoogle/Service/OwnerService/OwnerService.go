@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	mail "MongoGoogle/ApplicationService"
 	conn "MongoGoogle/Repository"
+	mail "MongoGoogle/Service/ApplicationService"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

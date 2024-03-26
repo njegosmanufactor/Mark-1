@@ -205,7 +205,6 @@ func ApplicationLogin(email string, password string) string {
 
 // Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
-
 	//Finding the right pending request
 	collection := conn.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)

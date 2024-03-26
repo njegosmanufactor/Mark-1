@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	applicationService "MongoGoogle/ApplicationService"
 	db "MongoGoogle/Repository"
+	applicationService "MongoGoogle/Service/ApplicationService"
 
 	oauth2v2 "google.golang.org/api/oauth2/v2"
 
@@ -125,30 +125,24 @@ func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader s
 		if message == "Success" {
 			user, _ := db.GetUserData(email)
 			token, _ := GenerateToken(user, time.Hour)
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(token)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(message)
 		}
 	} else {
 		if VerifyTokenPointer(tokenPointer) {
 			if tokenPointer.Valid {
-				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode(message)
 			} else {
 				if message == "Success" {
 					user, _ := db.GetUserData(email)
 					token, _ := GenerateToken(user, time.Hour)
-					res.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(res).Encode(token)
 				} else {
-					res.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(res).Encode(message)
 				}
 			}
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode("Token not found")
 		}
 	}

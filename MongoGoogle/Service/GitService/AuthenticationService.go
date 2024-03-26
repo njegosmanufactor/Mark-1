@@ -3,7 +3,7 @@ package GitService
 import (
 	userType "MongoGoogle/Model"
 	data "MongoGoogle/Repository"
-	tokenService "MongoGoogle/TokenService"
+	tokenService "MongoGoogle/Service/TokenService"
 	"bytes"
 	"encoding/json"
 	"fmt"
