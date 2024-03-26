@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	userType "MongoGoogle/Model"
-	db "MongoGoogle/Repository"
+	dataBase "MongoGoogle/Repository"
 	applicationService "MongoGoogle/Service/ApplicationService"
+	companyService "MongoGoogle/Service/CompanyService"
 	gitService "MongoGoogle/Service/GitService"
 	googleService "MongoGoogle/Service/GoogleService"
 	ownerService "MongoGoogle/Service/OwnerService"
@@ -40,7 +40,6 @@ func Mark1() {
 		if tokenUser != nil && tokenUser.Valid {
 			ownerService.SendInvitation(res, req)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
 	})
@@ -58,7 +57,6 @@ func Mark1() {
 		if tokenUser != nil && tokenUser.Valid {
 			applicationService.PasswordChange(res, req)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
 	})
@@ -80,12 +78,11 @@ func Mark1() {
 		if tokenUser != nil && tokenUser.Valid {
 			ownerService.TransferOwnership(res, req)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode("Session timed out or terminated")
 		}
 	})
 	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
-	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/transferOwnership/feedataBaseack/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
 		ownerService.FinaliseOwnershipTransfer(transferId, res)
@@ -95,10 +92,9 @@ func Mark1() {
 		accessToken := req.URL.Query().Get("access_token")
 		googleUser := tokenService.TokenGoogleLoginLogic(res, req, accessToken)
 		googleService.CompleteGoogleUserAuthentication(res, req, googleUser)
-		user, _ := db.GetUserData(googleUser.Email)
+		user, _ := dataBase.GetUserData(googleUser.Email)
 		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
 		if tokenString != "" {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(tokenString)
 		}
 	})
@@ -132,9 +128,8 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		user, _ := db.GetUserData(requestBody.Email)
+		user, _ := dataBase.GetUserData(requestBody.Email)
 		tokenString, _ := tokenService.GenerateToken(user, time.Hour)
-		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(tokenString)
 	})
 	// Handles the request for a password-less login code.
@@ -152,11 +147,11 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		result, _ := db.FindCodeRequestByHex(requestBody.RequestID, res)
+		result, _ := dataBase.FindCodeRequestByHex(requestBody.RequestID, res)
 		if requestBody.Code == result.Code {
-			user, _ := db.GetUserData(result.Email)
+			user, _ := dataBase.GetUserData(result.Email)
 			token, _ := tokenService.GenerateToken(user, time.Hour)
-			db.DeletePandingRequrst(requestBody.RequestID)
+			dataBase.DeletePandingRequrst(requestBody.RequestID)
 			json.NewEncoder(res).Encode(token)
 		} else {
 			json.NewEncoder(res).Encode("Incorect code")
@@ -192,8 +187,6 @@ func Mark1() {
 			return
 		}
 		tokenExpString, _ := tokenService.GenerateToken(user, time.Second)
-
-		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(tokenExpString)
 	})
 
@@ -201,90 +194,19 @@ func Mark1() {
 	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		email := vars["email"]
-		if db.VerifyUser(email) {
+		if dataBase.VerifyUser(email) {
 			fmt.Println(res, email)
 		}
 	})
 
 	// Registers a new company using the provided email address for authentication.
 	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
-		token = tokenService.SplitTokenHeder(token)
-		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
-		if err != nil {
-			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-			return
-		}
-		if tokenUser != nil && tokenUser.Valid {
-			var companyData struct {
-				Name                  string            `json:"name"`
-				Address               userType.Location `json:"location"`
-				Website               string            `json:"website"`
-				ListOfApprovedDomains []string          `json:"listOfApprovedDomains"`
-			}
-
-			err := json.NewDecoder(req.Body).Decode(&companyData)
-			if err != nil {
-				http.Error(res, "Error decoding request body", http.StatusBadRequest)
-				return
-			}
-
-			if db.FindComapnyName(companyData.Name) {
-				fmt.Printf("Company exist\n")
-			} else {
-				db.SaveCompany(companyData.Name, companyData.Address, companyData.Website, companyData.ListOfApprovedDomains, user.ID)
-				user, _ := db.GetUserData(user.Email)
-				token, _ := tokenService.GenerateToken(user, time.Hour)
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(token)
-			}
-		} else {
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode("User not found")
-		}
-
+		companyService.CreateComapny(res, req)
 	})
 
 	// Deletes the company associated with the provided email address.
 	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
-		token = tokenService.SplitTokenHeder(token)
-		user, tokenUser, err := tokenService.ExtractUserFromToken(token)
-		if err != nil {
-			http.Error(res, "Error extracting user from token", http.StatusInternalServerError)
-			return
-		}
-
-		var requestBody struct {
-			CompanyName string `json:"companyName"`
-		}
-		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
-		if errReq != nil {
-			http.Error(res, "Error decoding request body", http.StatusBadRequest)
-			return
-		}
-		if requestBody.CompanyName == "" {
-			http.Error(res, "Company name is required", http.StatusBadRequest)
-			return
-		} else {
-			company, err := db.FindCompanyByName(requestBody.CompanyName, res)
-			if !err {
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode("You don't have any company")
-				return
-			}
-			if tokenUser != nil && tokenUser.Valid && user.ID == company.Owner {
-				db.DeleteCompany(requestBody.CompanyName, company.ID)
-				user, _ := db.GetUserData(user.Email)
-				token, _ := tokenService.GenerateToken(user, time.Hour)
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(token)
-			} else {
-				res.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(res).Encode("You are not owner of" + requestBody.CompanyName)
-			}
-
-		}
+		companyService.DeleteCompany(res, req)
 	})
 
 	//Mux router listens for requests on port : 3000
