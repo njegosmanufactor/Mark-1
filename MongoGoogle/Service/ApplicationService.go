@@ -100,7 +100,7 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 	userCollection := dataBase.GetClient().Database("UserDatabase").Collection("Users")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(transferId)
 	if iderr != nil {
-		log.Fatal(iderr)
+		json.NewEncoder(res).Encode(iderr)
 	}
 	filter := bson.M{"_id": requestIdentifier}
 	var result model.PasswordChangeRequest
@@ -109,8 +109,8 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find request!")
+			return
 		}
-		log.Fatal(err)
 	}
 	//Updating the password field in user
 	NewPassword, _ := dataBase.HashPassword(password.Password)
@@ -214,7 +214,8 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
 	if iderr != nil {
-		log.Fatal(iderr)
+		json.NewEncoder(res).Encode(iderr)
+		return
 	}
 	filter := bson.M{"_id": requestIdentifier}
 	var result model.PendingRequest
@@ -223,8 +224,8 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find request!")
+			return
 		}
-		log.Fatal(err)
 	}
 	//Inserts user to company employees field
 	AddUserToCompany(result.CompanyID, result.Email, res)
