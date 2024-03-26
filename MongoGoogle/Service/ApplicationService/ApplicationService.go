@@ -66,8 +66,12 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	if user.ApplicationMethod == "Application" {
 		if found {
 			if user.Verified {
-				_, id := conn.CreatePasswordChangeRequest(passChangeDTO.Email)
-				SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+				_, id, created := conn.CreatePasswordChangeRequest(passChangeDTO.Email)
+				if created {
+					SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+				} else {
+					json.NewEncoder(res).Encode("Error while creating password change link.")
+				}
 			} else {
 				json.NewEncoder(res).Encode("This user hasn't verified his account.")
 			}
@@ -263,8 +267,11 @@ func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			code := generateRandomCode()
-			conn.CreatePasswordLessRequest(magicLink.Email, code)
-			SendPasswordLessCode(magicLink.Email, code)
+			if !conn.CreatePasswordLessRequest(magicLink.Email, code) {
+				json.NewEncoder(res).Encode("Error on creading passwordless request")
+			} else {
+				SendPasswordLessCode(magicLink.Email, code)
+			}
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
