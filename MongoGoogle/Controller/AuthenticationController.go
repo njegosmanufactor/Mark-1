@@ -69,7 +69,7 @@ func Mark1() {
 		}
 	})
 	//Sets users field "Role" to "Owner" DA LI UBACITI DA SE PROSLI OWNER OBRISE?
-	r.HandleFunc("/transferOwnership/feedataBaseack/{transferId}", func(res http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/transferOwnership/feedback/{transferId}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		transferId := vars["transferId"]
 		service.FinaliseOwnershipTransfer(transferId, res)

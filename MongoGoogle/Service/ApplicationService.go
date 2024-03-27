@@ -66,8 +66,12 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	if user.ApplicationMethod == "Application" {
 		if found {
 			if user.Verified {
-				_, id := dataBase.CreatePasswordChangeRequest(passChangeDTO.Email)
-				SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+				_, id, created := dataBase.CreatePasswordChangeRequest(passChangeDTO.Email)
+				if created {
+					SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
+				} else {
+					json.NewEncoder(res).Encode("Error while creating password change link.")
+				}
 			} else {
 				json.NewEncoder(res).Encode("This user hasn't verified his account.")
 			}
@@ -96,7 +100,7 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 	userCollection := dataBase.GetClient().Database("UserDatabase").Collection("Users")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(transferId)
 	if iderr != nil {
-		log.Fatal(iderr)
+		json.NewEncoder(res).Encode(iderr)
 	}
 	filter := bson.M{"_id": requestIdentifier}
 	var result model.PasswordChangeRequest
@@ -105,8 +109,8 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find request!")
+			return
 		}
-		log.Fatal(err)
 	}
 	//Updating the password field in user
 	NewPassword, _ := dataBase.HashPassword(password.Password)
@@ -210,7 +214,8 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
 	if iderr != nil {
-		log.Fatal(iderr)
+		json.NewEncoder(res).Encode(iderr)
+		return
 	}
 	filter := bson.M{"_id": requestIdentifier}
 	var result model.PendingRequest
@@ -219,8 +224,8 @@ func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find request!")
+			return
 		}
-		log.Fatal(err)
 	}
 	//Inserts user to company employees field
 	AddUserToCompany(result.CompanyID, result.Email, res)
@@ -263,8 +268,11 @@ func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 	if found {
 		if user.Verified {
 			code := generateRandomCode()
-			dataBase.CreatePasswordLessRequest(magicLink.Email, code)
-			SendPasswordLessCode(magicLink.Email, code)
+			if !dataBase.CreatePasswordLessRequest(magicLink.Email, code) {
+				json.NewEncoder(res).Encode("Error on creading passwordless request")
+			} else {
+				SendPasswordLessCode(magicLink.Email, code)
+			}
 		} else {
 			json.NewEncoder(res).Encode("This user hasn't verified his account.")
 		}
