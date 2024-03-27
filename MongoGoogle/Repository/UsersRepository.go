@@ -59,7 +59,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 		DateOfBirth:       date,
 		Username:          username,
 		Password:          password,
-		Role:              "User",
+		Companies:         make([]model.Companies, 0),
 		Verified:          verified,
 		ApplicationMethod: applicationMethod,
 	}
@@ -130,19 +130,6 @@ func VerifyUser(email string) bool {
 	return err == nil
 }
 
-// SetUserRole updates the role of the user with the given user ID.
-func SetUserRole(userID primitive.ObjectID, role string) error {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
-	filter := bson.M{"_id": userID}
-	update := bson.M{"$set": bson.M{"Role": role}}
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // GetUserData retrieves the user data for the given email.
 func GetUserData(email string) (model.ApplicationUser, error) {
 	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
@@ -156,6 +143,7 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	return result, nil
 }
 
+// FindUserByHex finds a user by its ID in the database and returns the user and a boolean indicating if it was found.
 func FindUserByHex(hex string, res http.ResponseWriter) (model.ApplicationUser, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Users")
 	userIdentifier, iderr := primitive.ObjectIDFromHex(hex)
@@ -175,12 +163,38 @@ func FindUserByHex(hex string, res http.ResponseWriter) (model.ApplicationUser, 
 	return result, true
 }
 
+// FindUserByMail finds a user by its email in the database and returns the user and a boolean indicating if it was found.
 func FindUserByMail(mail string, res http.ResponseWriter) (model.ApplicationUser, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Users")
 	filter := bson.M{"Email": mail}
 	var result model.ApplicationUser
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find user!")
+			return result, false
+		}
+	}
+	return result, true
+}
+
+func DetermineUsersRoleWithinCompany(user model.ApplicationUser, companyID primitive.ObjectID) string {
+	var role string
+	for _, company := range user.Companies {
+		if company.CompanyID == companyID {
+			role = company.Role
+		}
+	}
+	return role
+}
+
+func FindUserById(id primitive.ObjectID, res http.ResponseWriter) (model.ApplicationUser, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("Users")
+	filter := bson.M{"_id": id}
+	var result model.ApplicationUser
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find user!")
 			return result, false

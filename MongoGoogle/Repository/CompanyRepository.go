@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +15,7 @@ import (
 // Saves a new company into the database.
 func SaveCompany(name string, location model.Location, website string, listOfApprovedDomains []string, ownerId primitive.ObjectID) {
 	CompanyCollection := GetClient().Database("UserDatabase").Collection("Company")
+	UserCollection := GetClient().Database("UserDatabase").Collection("Users")
 
 	// Creating user instance
 	company := model.Company{
@@ -24,55 +24,68 @@ func SaveCompany(name string, location model.Location, website string, listOfApp
 		Website:               website,
 		ListOfApprovedDomains: listOfApprovedDomains,
 		Owner:                 ownerId,
-		Employees:             make([]string, 0),
+		Employees:             make([]model.Employee, 0),
 	}
-
+	var res http.ResponseWriter
+	user, _ := FindUserById(ownerId, res)
+	Employee := model.Employee{
+		Email: user.Email,
+		Role:  "Owner",
+	}
+	company.Employees = append(company.Employees, Employee)
 	// Adding user to the database
 	insertResult, err := CompanyCollection.InsertOne(context.Background(), company)
 	if err != nil {
-		log.Fatal(err)
+		json.NewEncoder(res).Encode(err)
+		return
 	}
+	filter := bson.M{"Email": user.Email}
+	Comp := model.Companies{
+		CompanyID: insertResult.InsertedID.(primitive.ObjectID),
+		Role:      "Owner",
+	}
+	update := bson.M{"$push": bson.M{"Companies": Comp}}
 
+	_, err = UserCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		json.NewEncoder(res).Encode(err)
+		return
+	}
 	fmt.Println("Added new company with ID:", insertResult.InsertedID)
 }
 
 // Deletes a company from the database based on its name.
-func DeleteCompany(companyName string) {
+func DeleteCompany(companyName string, companyID primitive.ObjectID) {
 	companyCollection := GetClient().Database("UserDatabase").Collection("Company")
-	deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
-	if err != nil {
-		fmt.Println("aa")
-	}
-
-	fmt.Printf("Deleted company with name '%s'. Deleted count: %d\n", companyName, deleteResult.DeletedCount)
-}
-
-// Checks if a company with the given name exists in the database.
-func FindComapnyName(companyName string) bool {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
-	filter := bson.M{"Name": companyName}
-	var result model.Company
-	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false
+	var res http.ResponseWriter
+	company, Comperr := FindCompanyByName(companyName, res)
+	if Comperr {
+		for _, Employee := range company.Employees {
+			RemoveCompanyFromUser(Employee.Email, company.ID)
 		}
-		log.Fatal(err)
+		deleteResult, err := companyCollection.DeleteOne(context.Background(), bson.M{"Name": companyName})
+		if err != nil {
+			json.NewEncoder(res).Encode(err)
+			return
+		}
+		fmt.Printf("Deleted company with name ' %s'. Deleted count: %d\n", companyName, deleteResult.DeletedCount)
+	} else {
+		json.NewEncoder(res).Encode("Company not found!")
 	}
-	return true
+
 }
+func RemoveCompanyFromUser(mail string, companyId primitive.ObjectID) {
+	UsersCollection := GetClient().Database("UserDatabase").Collection("Users")
 
-// Sets the company for a user identified by userID in the database.
-func SetOwnerCompany(companyName string, userID string) error {
-	UsersCollection := GetClient().Database("UserDatabase").Collection("Company")
-	filter := bson.M{"Name": companyName}
-	update := bson.M{"$set": bson.M{"Owner": userID}}
-	_, err = UsersCollection.UpdateOne(context.Background(), filter, update)
+	filter := bson.M{"Email": mail}
+	update := bson.M{"$pull": bson.M{"Companies": bson.M{"_id": companyId}}}
+
+	_, err := UsersCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		return err
+		var res http.ResponseWriter
+		json.NewEncoder(res).Encode(err)
 	}
 
-	return nil
 }
 
 // Returns pair (company,bool). True if the company is found, false if not
@@ -80,13 +93,14 @@ func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company,
 	collection := GetClient().Database("UserDatabase").Collection("Company")
 	userIdentifier, iderr := primitive.ObjectIDFromHex(companyId)
 	if iderr != nil {
-		log.Fatal(iderr)
+		var res http.ResponseWriter
+		json.NewEncoder(res).Encode(iderr)
+
 	}
 	filter := bson.M{"_id": userIdentifier}
 	var result model.Company
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
 		if err == mongo.ErrNoDocuments {
 			json.NewEncoder(res).Encode("Didnt find company!")
 			return result, false
@@ -95,32 +109,7 @@ func FindCompanyByHex(companyId string, res http.ResponseWriter) (model.Company,
 	return result, true
 }
 
-// Function that finds the right company and inserts users id to employees field
-func AddUserToCompany(companyId primitive.ObjectID, userEmail string, res http.ResponseWriter) (model.Company, bool) {
-	//finding the company
-	collection := GetClient().Database("UserDatabase").Collection("Company")
-	filter := bson.M{"_id": companyId}
-	var result model.Company
-	err := collection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		log.Fatal(err)
-		if err == mongo.ErrNoDocuments {
-			json.NewEncoder(res).Encode("Didnt find company!")
-			return result, false
-		}
-	}
-	//Updating employees field with the right user
-	update := bson.M{"$push": bson.M{"Employees": userEmail}}
-	_, err = collection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		log.Fatal(err)
-		json.NewEncoder(res).Encode("Company not updated!")
-		return result, false
-	}
-	json.NewEncoder(res).Encode("Company updated!")
-	return result, true
-}
-
+// Finds a company by its name in the database.
 func FindCompanyByName(companyName string, res http.ResponseWriter) (model.Company, bool) {
 	collection := GetClient().Database("UserDatabase").Collection("Company")
 	filter := bson.M{"Name": companyName}
@@ -128,7 +117,6 @@ func FindCompanyByName(companyName string, res http.ResponseWriter) (model.Compa
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			json.NewEncoder(res).Encode("Didnt find company!")
 			return result, false
 		}
 	}

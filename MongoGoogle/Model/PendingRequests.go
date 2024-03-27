@@ -21,3 +21,10 @@ type PasswordChangeRequest struct {
 	Email     string             `bson:"Email,omitempty"`
 	Completed bool               `bson:"Completed"`
 }
+
+type PasswordLessRequest struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Email     string             `bson:"Email,omitempty"`
+	Code      string             `bson:"Code,omitempty"`
+	Completed bool               `bson:"Completed"`
+}

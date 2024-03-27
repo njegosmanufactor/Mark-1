@@ -1,9 +1,8 @@
-package GitService
+package Service
 
 import (
 	userType "MongoGoogle/Model"
 	data "MongoGoogle/Repository"
-	tokenService "MongoGoogle/TokenService"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -17,38 +16,24 @@ import (
 // LoggedinHandler validates if a GitHub user is registered in the database, and if not, it saves the user's GitHub username.
 func LoggedinHandler(w http.ResponseWriter, r *http.Request, githubData userType.GitHubData) {
 	// Validate user Username in database
-	if data.FindUserEmail(githubData.Username) {
-		//If user have account
-		//Ovde vracaj bearer token
-		user, _ := data.FindUserByMail(githubData.Username, w)
-		token, _ := tokenService.GenerateToken(user, time.Hour)
-		json.NewEncoder(w).Encode(githubData)
+	user, found := data.FindUserByMail(githubData.Username, w)
+	if found {
+		token, _ := GenerateToken(user, time.Hour)
 		json.NewEncoder(w).Encode(token)
-
 	} else {
-		//ovde se registruje
 		fmt.Println("Account created git")
 		data.SaveUserApplication(githubData.Username, githubData.Name, "", "", "", githubData.Username, "", true, "GitHub")
 	}
 }
 
-// GithubLoginHandler redirects the user to GitHub's OAuth authorization page.// GithubLoginHandler redirects the user to GitHub's OAuth authorization page.
+// GithubLoginHandler redirects the user to GitHub's OAuth authorization page.
 func GithubLoginHandler(w http.ResponseWriter, r *http.Request) {
 	githubClientID := GetGithubClientID()
-
 	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s", githubClientID, "http://localhost:3000/login/github/callback")
-	fmt.Println("redirectURL")
-	fmt.Println(redirectURL)
-	http.Redirect(w, r, redirectURL, 301)
-
+	http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 }
 
-// func GithubTokenCallbackHandler(w http.ResponseWriter, r *http.Request) {
-// 	githubAccessToken := r.URL.Query().Get("access_token")
-// 	githubData := GetGithubData(githubAccessToken)
-// 	LoggedinHandler(w, r, githubData)
-// }
-
+// Handles the callback from GitHub authentication.
 func GithubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	//Ovaj "access_token", mora da se preimenuje u "code" da bi se moglo gadjati preko fronta.
 	//Jedino ako moze u postmanu nekako da se querry parametar promeni sa access_token na code, ne bi ovde moralo da se menja
@@ -127,22 +112,22 @@ func GetGithubAccessToken(code string) string {
 
 // Function that gets client id from env file
 func GetGithubClientID() string {
-
+	var res http.ResponseWriter
 	githubClientID, exists := os.LookupEnv("CLIENT_ID")
 	if !exists {
-		log.Fatal("Github Client ID not defined in .env file")
+		json.NewEncoder(res).Encode("Error looking up client_id from .env file")
+		return ""
 	}
-
 	return githubClientID
 }
 
 // Function that gets client secret from env file
 func GetGithubClientSecret() string {
-
 	githubClientSecret, exists := os.LookupEnv("CLIENT_SECRET")
+	var res http.ResponseWriter
 	if !exists {
-		log.Fatal("Github Client ID not defined in .env file")
+		json.NewEncoder(res).Encode("Error looking up client_secret from .env file")
+		return ""
 	}
-
 	return githubClientSecret
 }

@@ -1,7 +1,8 @@
-package TokenService
+package Service
 
 import (
 	model "MongoGoogle/Model"
+	dataBase "MongoGoogle/Repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,23 +11,19 @@ import (
 	"strings"
 	"time"
 
-	applicationService "MongoGoogle/ApplicationService"
 	db "MongoGoogle/Repository"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	oauth2v2 "google.golang.org/api/oauth2/v2"
 
 	"github.com/dgrijalva/jwt-go"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/oauth2"
 )
 
 var jwtKey = []byte("tajna_lozinka")
 
-// Korisnik predstavlja strukturu korisnika
-
-// GenerateToken generira JWT token na temelju korisničkih podataka
+// Generates a JWT token for the given user with a specified expiration time.
 func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error) {
-	//tokenTTL := 1 * time.Minute // Token vredi 1 sat
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":                user.ID,
 		"email":             user.Email,
@@ -36,13 +33,11 @@ func GenerateToken(user model.ApplicationUser, exp time.Duration) (string, error
 		"dateOfBirth":       user.DateOfBirth,
 		"username":          user.Username,
 		"password":          user.Password,
-		"role":              user.Role,
 		"verified":          user.Verified,
 		"applicationMethod": user.ApplicationMethod,
 		"exp":               time.Now().Add(exp).Unix(),
 	})
 
-	// Potpisivanje tokena
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
 		return "", err
@@ -62,7 +57,8 @@ func SplitTokenHeder(authHeader string) string {
 	return tokenString
 }
 
-func ParseTokenString(tokenString string) (*jwt.Token, error) {
+// Parses the JWT token string and returns the token object.
+func ParseTokenString1(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -72,10 +68,24 @@ func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	if err != nil {
 		return token, fmt.Errorf("failed to parse token: %v", err)
 	}
-
 	return token, nil
 }
 
+func GetUserAndPointerFromToken(res http.ResponseWriter, req *http.Request) (model.ApplicationUser, *jwt.Token) {
+	token := req.Header.Get("Authorization")
+	token = SplitTokenHeder(token)
+	tokenpointer, _ := ParseTokenString1(token)
+	if tokenpointer == nil {
+		var user model.ApplicationUser
+		return user, nil
+	}
+	claims, _ := tokenpointer.Claims.(jwt.MapClaims)
+	userID, _ := primitive.ObjectIDFromHex(claims["id"].(string))
+	user, _ := dataBase.FindUserById(userID, res)
+	return user, tokenpointer
+}
+
+// Verifies if the token pointer exists and is not nil.
 func VerifyTokenPointer(token *jwt.Token) bool {
 	if token == nil {
 		return false
@@ -84,79 +94,39 @@ func VerifyTokenPointer(token *jwt.Token) bool {
 	}
 }
 
-// Extracts user information from the token in the request header.
-func ExtractUserFromToken(tokenString string) (model.ApplicationUser, *jwt.Token, error) {
-	var usererr model.ApplicationUser
-	var errtoken *jwt.Token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return jwtKey, nil
-	})
-	if err != nil {
-		return usererr, errtoken, fmt.Errorf("failed to parse token: %v", err)
-	}
-
-	claims, _ := token.Claims.(jwt.MapClaims)
-
-	verified, _ := claims["verified"].(bool)
-
-	id, _ := primitive.ObjectIDFromHex(claims["id"].(string))
-	user := model.ApplicationUser{
-		ID:          id,
-		Email:       claims["email"].(string),
-		FirstName:   claims["firstName"].(string),
-		LastName:    claims["lastName"].(string),
-		Phone:       claims["phone"].(string),
-		DateOfBirth: claims["dateOfBirth"].(string),
-		Username:    claims["username"].(string),
-		Password:    claims["password"].(string),
-		Role:        claims["role"].(string),
-		Verified:    verified,
-	}
-	return user, token, nil
-}
-
+// Logic for handling user login via the application, including token verification and generation of a new one if needed.
 func TokenAppLoginLogic(res http.ResponseWriter, req *http.Request, authHeader string, email string, password string) {
+	_, tokenPointer := GetUserAndPointerFromToken(res, req)
+	message := ApplicationLogin(email, password)
 
-	tokenString := SplitTokenHeder(authHeader)
-	tokenPointer, _ := ParseTokenString(tokenString)
-	message := applicationService.ApplicationLogin(email, password)
-
-	if tokenString == "" {
+	if tokenPointer == nil {
 		if message == "Success" {
 			user, _ := db.GetUserData(email)
 			token, _ := GenerateToken(user, time.Hour)
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode("This is your bearer token for login: " + token)
+			json.NewEncoder(res).Encode(token)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode(message)
 		}
 	} else {
 		if VerifyTokenPointer(tokenPointer) {
 			if tokenPointer.Valid {
-				res.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(res).Encode(message)
 			} else {
 				if message == "Success" {
 					user, _ := db.GetUserData(email)
 					token, _ := GenerateToken(user, time.Hour)
-					res.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(res).Encode("This is your bearer token for login: " + token)
+					json.NewEncoder(res).Encode(token)
 				} else {
-					res.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(res).Encode(message)
 				}
 			}
 		} else {
-			res.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(res).Encode("Token not found")
 		}
 	}
 }
 
+// Logic for handling user login via Google OAuth authentication, including fetching user information using the access token.
 func TokenGoogleLoginLogic(res http.ResponseWriter, req *http.Request, accessToken string) *oauth2v2.Userinfo {
 	if accessToken == "" {
 		http.Error(res, "Unauthorised", http.StatusBadRequest)
