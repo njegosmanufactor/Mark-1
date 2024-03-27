@@ -2,7 +2,6 @@ package Service
 
 import (
 	model "MongoGoogle/Model"
-	dataBase "MongoGoogle/Repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -81,7 +80,7 @@ func GetUserAndPointerFromToken(res http.ResponseWriter, req *http.Request) (mod
 	}
 	claims, _ := tokenpointer.Claims.(jwt.MapClaims)
 	userID, _ := primitive.ObjectIDFromHex(claims["id"].(string))
-	user, _ := dataBase.FindUserById(userID, res)
+	user, _ := db.FindUserById(userID, res)
 	return user, tokenpointer
 }
 

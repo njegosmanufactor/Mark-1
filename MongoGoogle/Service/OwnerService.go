@@ -199,6 +199,10 @@ func SendInvitation(res http.ResponseWriter, req *http.Request) {
 	} else {
 		// Didnt find the user specifiend in body. I should create pending invite, and when user registers there should be a check
 		// System goes through requests and if it finds an invite , it sends that invite.
-		json.NewEncoder(res).Encode("Didnt find the user with specified mail adress.")
+		_, id, created := conn.CreateUnregInvite(invitation.Email, invitation.CompanyID)
+		if created {
+			json.NewEncoder(res).Encode("Created unreg invite with id:" + id.Hex())
+		}
+		json.NewEncoder(res).Encode("User must register with provided mail in order to join the company.")
 	}
 }
