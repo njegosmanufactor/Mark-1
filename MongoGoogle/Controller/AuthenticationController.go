@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	dataBase "MongoGoogle/Repository"
 	service "MongoGoogle/Service"
 )
 
@@ -42,6 +41,7 @@ func Mark1() {
 		transactionId := vars["id"]
 		service.IncludeUserInCompany(transactionId, res)
 	})
+
 	//Users request for changing forgotten password
 	r.HandleFunc("/forgotPassword", func(res http.ResponseWriter, req *http.Request) {
 		_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
@@ -79,7 +79,7 @@ func Mark1() {
 		accessToken := req.URL.Query().Get("access_token")
 		googleUser := service.TokenGoogleLoginLogic(res, req, accessToken)
 		service.CompleteGoogleUserAuthentication(res, req, googleUser)
-		user, _ := dataBase.GetUserData(googleUser.Email)
+		user := service.GetUserData(googleUser.Email)
 		tokenString, _ := service.GenerateToken(user, time.Hour)
 		if tokenString != "" {
 			json.NewEncoder(res).Encode(tokenString)
@@ -109,7 +109,7 @@ func Mark1() {
 	r.HandleFunc("/confirmMagicLink/{email}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		email := vars["email"]
-		user, _ := dataBase.GetUserData(email)
+		user := service.GetUserData(email)
 		tokenString, _ := service.GenerateToken(user, time.Hour)
 		json.NewEncoder(res).Encode(tokenString)
 	})
@@ -128,11 +128,11 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		result, _ := dataBase.FindCodeRequestByHex(requestBody.RequestID, res)
+		result, _ := service.FindCodeRequestByHex(requestBody.RequestID, res)
 		if requestBody.Code == result.Code {
-			user, _ := dataBase.GetUserData(result.Email)
+			user := service.GetUserData(result.Email)
 			token, _ := service.GenerateToken(user, time.Hour)
-			dataBase.DeletePandingRequrst(requestBody.RequestID)
+			service.DeletePendingRequest(requestBody.RequestID)
 			json.NewEncoder(res).Encode(token)
 		} else {
 			json.NewEncoder(res).Encode("Incorect code")
@@ -155,7 +155,7 @@ func Mark1() {
 			http.Error(res, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		service.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password)
+		service.ApplicationRegister(requestBody.Email, requestBody.FirstName, requestBody.LastName, requestBody.PhoneNumber, requestBody.Date, requestBody.Username, requestBody.Password, res)
 	})
 
 	// Logs out the user with the specified email address.
@@ -169,7 +169,7 @@ func Mark1() {
 	r.HandleFunc("/verify/{email}", func(res http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		email := vars["email"]
-		if dataBase.VerifyUser(email) {
+		if service.VerifyUser(email) {
 			fmt.Println(res, email)
 		}
 	})

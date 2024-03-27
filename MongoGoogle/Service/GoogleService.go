@@ -25,6 +25,14 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		}
 	} else {
 		data.SaveUserApplication(user.Email, user.GivenName, user.FamilyName, "", "", user.Email, "", true, "Google")
+		//check if user has invites prior to registering
+		//pending repo that returns the invite id
+		id, found := CheckForUnregInvites(user.Email, res)
+		//mail service that sends the invite
+		if found {
+			SendInvitationMail(id.Hex(), user.Email)
+		}
+
 	}
 }
 

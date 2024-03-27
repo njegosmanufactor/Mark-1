@@ -60,6 +60,33 @@ func CreatePendingInvite(email string, companyId string) (model.PendingRequest, 
 	return request, id, false
 }
 
+func CreateUnregInvite(email string, companyId string) (model.UnregRequest, primitive.ObjectID, bool) {
+	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	identifier, iderr := primitive.ObjectIDFromHex(companyId)
+	if iderr != nil {
+		log.Fatal(iderr)
+	}
+	// Creating request instance
+	request := model.UnregRequest{
+		Email:     email,
+		CompanyID: identifier,
+		Type:      "UnregInvite",
+		Completed: false,
+	}
+	var res http.ResponseWriter
+	// Adding request to the database
+	insertResult, err := RequestCollection.InsertOne(context.Background(), request)
+	if err != nil {
+		json.NewEncoder(res).Encode(err)
+	} else {
+		fmt.Println("Added new request with ID:", insertResult.InsertedID)
+		id := insertResult.InsertedID.(primitive.ObjectID)
+		return request, id, true
+	}
+	var id primitive.ObjectID
+	return request, id, false
+}
+
 // Creates a passwordless request in the database and returns the created request and its code.
 func CreatePasswordLessRequest(email string, code string) bool {
 	RequestCollection := GetClient().Database("UserDatabase").Collection("PendingRequests")
@@ -154,4 +181,18 @@ func DeletePandingRequrst(id string) {
 		filter := bson.M{"_id": requestIdentifier}
 		collection.DeleteOne(context.Background(), filter)
 	}
+}
+
+func FindUnregInvite(email string, res http.ResponseWriter) (primitive.ObjectID, bool) {
+	collection := GetClient().Database("UserDatabase").Collection("PendingRequests")
+	filter := bson.M{"Email": email, "Completed": false, "Type": "UnregInvite"}
+	var result model.PendingRequest
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			json.NewEncoder(res).Encode("Didnt find request!")
+			return result.ID, false
+		}
+	}
+	return result.ID, true
 }

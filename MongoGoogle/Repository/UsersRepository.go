@@ -71,6 +71,7 @@ func SaveUserApplication(email string, firstName string, lastName string, phone 
 	}
 
 	fmt.Println("Added new user with ID:", insertResult.InsertedID)
+
 }
 
 // ValidUser checks if the user with the given email and password exists in the database.
@@ -137,6 +138,8 @@ func GetUserData(email string) (model.ApplicationUser, error) {
 	var result model.ApplicationUser
 	err = UsersCollection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
+		var res http.ResponseWriter
+		json.NewEncoder(res).Encode("Didnt find user!")
 		return model.ApplicationUser{}, err
 	}
 
