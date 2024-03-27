@@ -21,12 +21,9 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		} else {
 			if appUser.ApplicationMethod != "Google" {
 				json.NewEncoder(res).Encode(user.Email + " already exists")
-			} else {
-				json.NewEncoder(res).Encode(user.Email + " successfully logged in to mark-1")
 			}
 		}
 	} else {
-		json.NewEncoder(res).Encode(user.Email + " successfully registred to Mark-1")
 		data.SaveUserApplication(user.Email, user.GivenName, user.FamilyName, "", "", user.Email, "", true, "Google")
 	}
 }

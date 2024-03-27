@@ -106,16 +106,10 @@ func Mark1() {
 		service.MagicLink(res, req)
 	})
 	// Confirms the magic link for login and generates a token.
-	r.HandleFunc("/confirmMagicLink", func(res http.ResponseWriter, req *http.Request) {
-		var requestBody struct {
-			Email string `json:"email"`
-		}
-		errReq := json.NewDecoder(req.Body).Decode(&requestBody)
-		if errReq != nil {
-			http.Error(res, "Error decoding request body", http.StatusBadRequest)
-			return
-		}
-		user, _ := dataBase.GetUserData(requestBody.Email)
+	r.HandleFunc("/confirmMagicLink/{email}", func(res http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		email := vars["email"]
+		user, _ := dataBase.GetUserData(email)
 		tokenString, _ := service.GenerateToken(user, time.Hour)
 		json.NewEncoder(res).Encode(tokenString)
 	})
