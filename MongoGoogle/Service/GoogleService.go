@@ -1,4 +1,4 @@
-package GoogleService
+package Service
 
 import (
 	"encoding/json"
@@ -15,25 +15,30 @@ import (
 // Completes the user authentication process using Google OAuth.
 func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request, user *oauth2v2.Userinfo) {
 	if data.FindUserEmail(user.Email) {
-		appUser, _ := data.GetUserData(user.Email)
-		if appUser.ApplicationMethod != "Google" {
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(user.Email + " already exists")
+		appUser, err := data.GetUserData(user.Email)
+		if err != nil {
+			json.NewEncoder(res).Encode(err)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(user.Email + " successfully logged in to mark-1")
+			if appUser.ApplicationMethod != "Google" {
+				json.NewEncoder(res).Encode(user.Email + " already exists")
+			}
 		}
 	} else {
-		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode(user.Email + " successfully registred to Mark-1")
 		data.SaveUserApplication(user.Email, user.GivenName, user.FamilyName, "", "", user.Email, "", true, "Google")
+		//check if user has invites prior to registering
+		//pending repo that returns the invite id
+		id, found := CheckForUnregInvites(user.Email, res)
+		//mail service that sends the invite
+		if found {
+			SendInvitationMail(id.Hex(), user.Email)
+		}
+
 	}
 }
 
 // Adds user role to the Google user data.
 func AddUserRole(user *goth.User) userType.GoogleData {
 	var roleUser userType.GoogleData
-
 	roleUser.AccessToken = user.AccessToken
 	roleUser.AccessTokenSecret = user.AccessTokenSecret
 	roleUser.AvatarURL = user.AvatarURL
@@ -51,6 +56,5 @@ func AddUserRole(user *goth.User) userType.GoogleData {
 	roleUser.RefreshToken = user.RefreshToken
 	roleUser.UserID = user.UserID
 	roleUser.Role = "User"
-
 	return roleUser
 }
