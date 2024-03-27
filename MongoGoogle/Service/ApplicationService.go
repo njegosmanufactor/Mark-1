@@ -2,7 +2,7 @@ package Service
 
 import (
 	model "MongoGoogle/Model"
-	dataBase "MongoGoogle/Repository"
+	repo "MongoGoogle/Repository"
 	"math/rand"
 	"strconv"
 
@@ -62,11 +62,11 @@ func PasswordChange(res http.ResponseWriter, req *http.Request) {
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	user, found := dataBase.FindUserByMail(passChangeDTO.Email, res)
+	user, found := repo.FindUserByMail(passChangeDTO.Email, res)
 	if user.ApplicationMethod == "Application" {
 		if found {
 			if user.Verified {
-				_, id, created := dataBase.CreatePasswordChangeRequest(passChangeDTO.Email)
+				_, id, created := repo.CreatePasswordChangeRequest(passChangeDTO.Email)
 				if created {
 					SendPasswordChangeLink(id.Hex(), passChangeDTO.Email)
 				} else {
@@ -96,8 +96,8 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 		return
 	}
 
-	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
-	userCollection := dataBase.GetClient().Database("UserDatabase").Collection("Users")
+	collection := repo.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	userCollection := repo.GetClient().Database("UserDatabase").Collection("Users")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(transferId)
 	if iderr != nil {
 		json.NewEncoder(res).Encode(iderr)
@@ -113,7 +113,7 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 		}
 	}
 	//Updating the password field in user
-	NewPassword, _ := dataBase.HashPassword(password.Password)
+	NewPassword, _ := repo.HashPassword(password.Password)
 	userUpdate := bson.M{"$set": bson.M{"Password": NewPassword}}
 	userFilter := bson.M{"Email": result.Email}
 	_, userErr := userCollection.UpdateOne(context.Background(), userFilter, userUpdate)
@@ -130,7 +130,7 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 }
 
 // ApplicationRegister validates user input for registration and saves the application if valid, sending a verification email upon success.
-func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string) {
+func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string, res http.ResponseWriter) {
 	if email == "" || username == "" || password == "" || date == "" || phone == "" || firstName == "" || lastName == "" {
 		fmt.Println("Some required parameters are missing.")
 		return
@@ -172,33 +172,39 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		return
 	}
 	//Save user
-	if dataBase.FindUserEmail(email) {
+	if repo.FindUserEmail(email) {
 		fmt.Println("Email in use")
 		return
 	}
-	if dataBase.FindUserUsername(username) {
+	if repo.FindUserUsername(username) {
 		fmt.Println("Username in use")
 		return
 	} else {
-		hashedPass, hashError := dataBase.HashPassword(password)
+		hashedPass, hashError := repo.HashPassword(password)
 		if hashError != nil {
 			log.Panic(hashError)
 		}
-		dataBase.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false, "Application")
+		repo.SaveUserApplication(email, firstName, lastName, phone, date, username, hashedPass, false, "Application")
 		SendMail(email)
-		fmt.Println("Success")
+		//check if user has invites prior to registering
+		//pending repo that returns the invite id
+		id, found := CheckForUnregInvites(email, res)
+		//mail service that sends the invite
+		if found {
+			SendInvitationMail(id.Hex(), email)
+		}
 	}
 }
 
 // Authenticates the user by verifying the email and password, and extracts user information from the token in the request header to set the user as authorized.
 func ApplicationLogin(email string, password string) string {
 
-	if dataBase.FindUserEmail(email) {
-		user, _ := dataBase.GetUserData(email)
+	if repo.FindUserEmail(email) {
+		user, _ := repo.GetUserData(email)
 		if user.ApplicationMethod != "Application" {
 			return "This account registrated by " + user.ApplicationMethod
 		}
-		if !dataBase.ValidUser(email, password) {
+		if !repo.ValidUser(email, password) {
 			return "Incorrect email or password"
 		}
 		return "Success"
@@ -211,7 +217,7 @@ func ApplicationLogin(email string, password string) string {
 // Includes the user in the company by updating the company ID in the user's document.
 func IncludeUserInCompany(requestId string, res http.ResponseWriter) {
 	//Finding the right pending request
-	collection := dataBase.GetClient().Database("UserDatabase").Collection("PendingRequests")
+	collection := repo.GetClient().Database("UserDatabase").Collection("PendingRequests")
 	requestIdentifier, iderr := primitive.ObjectIDFromHex(requestId)
 	if iderr != nil {
 		json.NewEncoder(res).Encode(iderr)
@@ -246,7 +252,7 @@ func MagicLink(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	//finding the user
-	user, found := dataBase.FindUserByMail(magicLink.Email, res)
+	user, found := repo.FindUserByMail(magicLink.Email, res)
 	if found {
 		if user.Verified {
 			SendMagicLink(magicLink.Email)
@@ -264,11 +270,11 @@ func PasswordLessCode(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
 	//finding the user
-	user, found := dataBase.FindUserByMail(magicLink.Email, res)
+	user, found := repo.FindUserByMail(magicLink.Email, res)
 	if found {
 		if user.Verified {
 			code := generateRandomCode()
-			if !dataBase.CreatePasswordLessRequest(magicLink.Email, code) {
+			if !repo.CreatePasswordLessRequest(magicLink.Email, code) {
 				json.NewEncoder(res).Encode("Error on creading passwordless request")
 			} else {
 				SendPasswordLessCode(magicLink.Email, code)
