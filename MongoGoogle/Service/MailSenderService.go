@@ -78,27 +78,27 @@ func SendEmailWithHTMLTemplate(email, subject, filePath string, data interface{}
 }
 
 func SendMail(email string) {
-	link := generateLink("http://localhost:3000/verify/{email}", "{email}", email)
+	link := generateLink("http://localhost:3000/auth/verify/{email}", "{email}", email)
 	SendEmailWithHTMLTemplate(email, "Account verification", "Controller/pages/MailTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendOwnershipMail(transferID, email string, res http.ResponseWriter) {
-	link := generateLink("http://localhost:3000/transferOwnership/feedback/{transferID}", "{transferID}", transferID)
+	link := generateLink("http://localhost:3000/user/transferOwnership/feedback/{transferID}", "{transferID}", transferID)
 	SendEmailWithHTMLTemplate(email, "Ownership transfer", "Controller/pages/OwnershipMailTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendInvitationMail(id, email string) {
-	link := generateLink("http://localhost:3000/inviteConfirmation/{id}", "{id}", id)
+	link := generateLink("http://localhost:3000/user/inviteConfirmation/{id}", "{id}", id)
 	SendEmailWithHTMLTemplate(email, "Company invitation", "Controller/pages/InviteTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendPasswordChangeLink(id, email string) {
-	link := generateLink("http://localhost:3000/forgotPassword/callback/PAGETOREDIRECTTO/{id}", "{id}", id)
+	link := generateLink("http://localhost:3000/user/forgotPassword/callback/PAGETOREDIRECTTO/{id}", "{id}", id)
 	SendEmailWithHTMLTemplate(email, "Change password request", "Controller/pages/ChangePasswordTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendMagicLink(email string) {
-	link := generateLink("http://localhost:3000/confirmMagicLink/{email}", "{email}", email)
+	link := generateLink("http://localhost:3000/auth/confirmMagicLink/{email}", "{email}", email)
 	SendEmailWithHTMLTemplate(email, "Application confirmation", "Controller/pages/MagicLink.html", struct{ Message string }{Message: link})
 }
 
