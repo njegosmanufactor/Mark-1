@@ -1,6 +1,9 @@
 package Controller
 
 import (
+	service "MongoGoogle/Service"
+	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
@@ -14,5 +17,9 @@ func NewCashflowController() *CashflowController {
 	}
 }
 func (cfc *CashflowController) RegisterRoutes() {
+	cfc.Router.HandleFunc("/cashFlow/CreateCashFlowUser", cfc.CreateCashFlowForUser)
+}
 
+func (cc *CashflowController) CreateCashFlowForUser(res http.ResponseWriter, req *http.Request) {
+	service.CreateCashFlowUser(res, req)
 }

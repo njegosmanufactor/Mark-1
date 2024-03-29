@@ -30,10 +30,13 @@ func main() {
 	userController.RegisterRoutes()
 	companyController := controllers.NewCompanyController()
 	companyController.RegisterRoutes()
+	cashFlowController := controllers.NewCashflowController()
+	cashFlowController.RegisterRoutes()
 
 	r.PathPrefix("/auth").Handler(authController.Router)
 	r.PathPrefix("/users").Handler(userController.Router)
 	r.PathPrefix("/company").Handler(companyController.Router)
+	r.PathPrefix("/cashFlow").Handler(cashFlowController.Router)
 
 	fmt.Println("[ UP ON PORT 3000 ]")
 	err := http.ListenAndServe(":3000", r)

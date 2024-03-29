@@ -26,7 +26,7 @@ func (ac *AuthenticationController) RegisterRoutes() {
 	ac.Router.HandleFunc("/auth/login/github/callback", ac.GithubLoginCallback)
 	ac.Router.HandleFunc("/auth/googleLogin", ac.GoogleLogIn)
 	ac.Router.HandleFunc("/auth/login", ac.Login)
-	ac.Router.HandleFunc("/auth/magicLing", ac.MagicLink)
+	ac.Router.HandleFunc("/auth/magicLink", ac.MagicLink)
 	ac.Router.HandleFunc("/auth/confirmMagicLink/{email}", ac.MagicLinkCallback)
 	ac.Router.HandleFunc("/auth/passwordLessCode", ac.PasswordlessLogin)
 	ac.Router.HandleFunc("/auth/passwordLessCodeConfirm", ac.PasswordlessLoginCallback)

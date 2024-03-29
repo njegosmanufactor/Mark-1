@@ -23,6 +23,7 @@ func (cc *CompanyController) RegisterRoutes() {
 
 func (cc *CompanyController) RegisterCompany(res http.ResponseWriter, req *http.Request) {
 	service.CreateComapny(res, req)
+	service.CreateCashFlowCompany(res, req)
 }
 func (cc *CompanyController) DeleteCompany(res http.ResponseWriter, req *http.Request) {
 	service.CreateComapny(res, req)
