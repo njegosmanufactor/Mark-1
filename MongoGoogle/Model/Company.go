@@ -23,4 +23,5 @@ type Company struct {
 	ListOfApprovedDomains []string           `bson:"Domains"`
 	Owner                 primitive.ObjectID `bson:"OwnerId"`
 	Employees             []Employee         `bson:"Employees"`
+	ChashFlowID           primitive.ObjectID `bson:"ChashFlowID"`
 }
