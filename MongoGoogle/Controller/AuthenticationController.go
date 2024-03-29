@@ -177,11 +177,16 @@ func Mark1() {
 	// Registers a new company using the provided email address for authentication.
 	r.HandleFunc("/registerCompany", func(res http.ResponseWriter, req *http.Request) {
 		service.CreateComapny(res, req)
+		service.CreateCashFlowCompany(res, req)
 	})
 
 	// Deletes the company associated with the provided email address.
 	r.HandleFunc("/deleteCompany", func(res http.ResponseWriter, req *http.Request) {
 		service.DeleteCompany(res, req)
+	})
+
+	r.HandleFunc("/CreateCashFlowUser", func(res http.ResponseWriter, req *http.Request) {
+		service.CreateCashFlowUser(res, req)
 	})
 
 	//Mux router listens for requests on port : 3000
