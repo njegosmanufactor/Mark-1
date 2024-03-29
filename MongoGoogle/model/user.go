@@ -69,6 +69,7 @@ type ApplicationUser struct {
 	Companies         []Companies        `bson:"Companies"`
 	Verified          bool               `bson:"Verified"`
 	ApplicationMethod string             `bson:"ApplicationMethod"`
+	ChashFlowID       primitive.ObjectID `bson:"ChashFlowID"`
 }
 type Companies struct {
 	CompanyID primitive.ObjectID `bson:"_id,omitempty"`
