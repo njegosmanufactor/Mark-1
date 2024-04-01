@@ -8,12 +8,12 @@ type CashFlow struct {
 }
 type Category struct {
 	Name          string        `bson:"Name"`
-	Subcategories []Subcategory `bson:"SubCategories"`
+	Subcategories []Subcategory `bson:"Subcategories"`
 }
 type Subcategory struct {
-	Name     string        `bson:"Name"`
-	Positive []Transaction `bson:"Inflow"`
-	Negative []Transaction `bson:"Outflow"`
+	Name    string        `bson:"Name"`
+	Inflow  []Transaction `bson:"Inflow"`
+	Outflow []Transaction `bson:"Outflow"`
 }
 type Transaction struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty"`
