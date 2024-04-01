@@ -5,6 +5,7 @@ import (
 	conn "MongoGoogle/Repository"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -27,41 +28,31 @@ type InvitationDTO struct {
 }
 
 // Using users id to check his role, we can send invitation to other users for them to join our organisation. Or accept ownership
-func TransferOwnership(res http.ResponseWriter, req *http.Request) {
-
+func TransferOwnership(res http.ResponseWriter, req *http.Request, owner model.ApplicationUser) {
+	isOwner, companyIDOwner := CheckUserRole(owner, "Owner")
+	fmt.Println(isOwner)
 	//Getting request body
 	var ownership OwnershipDTO
 	decErr := json.NewDecoder(req.Body).Decode(&ownership)
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	//parsing request data to corect type
-	ownerId, iderr := primitive.ObjectIDFromHex(ownership.OwnerID)
-	if iderr != nil {
-		json.NewEncoder(res).Encode(iderr)
-		return
-	}
 	companyId, iderr := primitive.ObjectIDFromHex(ownership.CompanyID)
 	if iderr != nil {
 		json.NewEncoder(res).Encode(iderr)
 		return
 	}
-	user, found := conn.FindUserByHex(ownership.OwnerID, res)
-	role := conn.DetermineUsersRoleWithinCompany(user, companyId)
-	if found {
-		if role == "Owner" {
-			//kreiramo zahtev(owner id comp id user mail) ovde i saljemo mejl(id zahteva)
-			_, transferId, created := conn.CreatePendingOwnershipInvitation(ownership.Email, ownerId, companyId)
-			if created {
-				SendOwnershipMail(transferId.Hex(), ownership.Email, res)
-			} else {
-				json.NewEncoder(res).Encode("Error on creating ownership invitation")
-			}
+	if isOwner && companyIDOwner == companyId {
+		//kreiramo zahtev(owner id comp id user mail) ovde i saljemo mejl(id zahteva)
+		_, transferId, created := conn.CreatePendingOwnershipInvitation(ownership.Email, owner.ID, companyId)
+
+		if created {
+			SendOwnershipMail(transferId.Hex(), ownership.Email, res)
 		} else {
-			json.NewEncoder(res).Encode("Only owners can transfer ownership.")
+			json.NewEncoder(res).Encode("Error on creating ownership invitation")
 		}
 	} else {
-		json.NewEncoder(res).Encode("Owner not found!")
+		json.NewEncoder(res).Encode("Only owners can transfer ownership.")
 	}
 }
 func UpdateUserRole(transfer model.PendingOwnershipTransfer, res http.ResponseWriter, userCollection *mongo.Collection) bool {
@@ -177,32 +168,40 @@ func FinaliseOwnershipTransfer(id string, res http.ResponseWriter) {
 }
 
 // Sends an invitation to join a company to the specified email address.
-func SendInvitation(res http.ResponseWriter, req *http.Request) {
+func SendInvitation(res http.ResponseWriter, req *http.Request, OwnerAdmin model.ApplicationUser) {
 	var invitation InvitationDTO
 	decErr := json.NewDecoder(req.Body).Decode(&invitation)
 	if decErr != nil {
 		http.Error(res, decErr.Error(), http.StatusBadRequest)
 	}
-	//finding the user
-	user, found := conn.FindUserByMail(invitation.Email, res)
-	if found {
-		if user.Verified {
-			_, id, created := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
-			if created {
-				SendInvitationMail(id.Hex(), invitation.Email)
+	isOwner, companyIDOwner := CheckUserRole(OwnerAdmin, "Owner")
+	isAdmin, companyIDAdmin := CheckUserRole(OwnerAdmin, "Admin")
+	companyID, _ := primitive.ObjectIDFromHex(invitation.CompanyID)
+	if (isOwner && companyIDOwner == companyID) || (isAdmin && companyIDAdmin == companyID) {
+
+		//finding the user
+		user, found := conn.FindUserByMail(invitation.Email, res)
+		if found {
+			if user.Verified {
+				_, id, created := conn.CreatePendingInvite(invitation.Email, invitation.CompanyID)
+				if created {
+					SendInvitationMail(id.Hex(), invitation.Email)
+				} else {
+					json.NewEncoder(res).Encode("Error on creating pending invite")
+				}
 			} else {
-				json.NewEncoder(res).Encode("Error on creating pending invite")
+				json.NewEncoder(res).Encode("This user hasn't verified his account.")
 			}
 		} else {
-			json.NewEncoder(res).Encode("This user hasn't verified his account.")
+			// Didnt find the user specifiend in body. I should create pending invite, and when user registers there should be a check
+			// System goes through requests and if it finds an invite , it sends that invite.
+			_, id, created := conn.CreateUnregInvite(invitation.Email, invitation.CompanyID)
+			if created {
+				json.NewEncoder(res).Encode("Created unreg invite with id:" + id.Hex())
+			}
+			json.NewEncoder(res).Encode("User must register with provided mail in order to join the company.")
 		}
 	} else {
-		// Didnt find the user specifiend in body. I should create pending invite, and when user registers there should be a check
-		// System goes through requests and if it finds an invite , it sends that invite.
-		_, id, created := conn.CreateUnregInvite(invitation.Email, invitation.CompanyID)
-		if created {
-			json.NewEncoder(res).Encode("Created unreg invite with id:" + id.Hex())
-		}
-		json.NewEncoder(res).Encode("User must register with provided mail in order to join the company.")
+		json.NewEncoder(res).Encode("You are not owner or admin of this comapny")
 	}
 }
