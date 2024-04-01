@@ -83,17 +83,17 @@ func SendMail(email string) {
 }
 
 func SendOwnershipMail(transferID, email string, res http.ResponseWriter) {
-	link := generateLink("http://localhost:3000/user/transferOwnership/feedback/{transferID}", "{transferID}", transferID)
+	link := generateLink("http://localhost:3000/users/transferOwnership/feedback/{transferID}", "{transferID}", transferID)
 	SendEmailWithHTMLTemplate(email, "Ownership transfer", "Controller/pages/OwnershipMailTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendInvitationMail(id, email string) {
-	link := generateLink("http://localhost:3000/user/inviteConfirmation/{id}", "{id}", id)
+	link := generateLink("http://localhost:3000/users/inviteConfirmation/{id}", "{id}", id)
 	SendEmailWithHTMLTemplate(email, "Company invitation", "Controller/pages/InviteTemplate.html", struct{ Message string }{Message: link})
 }
 
 func SendPasswordChangeLink(id, email string) {
-	link := generateLink("http://localhost:3000/user/forgotPassword/callback/PAGETOREDIRECTTO/{id}", "{id}", id)
+	link := generateLink("http://localhost:3000/users/forgotPassword/callback/PAGETOREDIRECTTO/{id}", "{id}", id)
 	SendEmailWithHTMLTemplate(email, "Change password request", "Controller/pages/ChangePasswordTemplate.html", struct{ Message string }{Message: link})
 }
 

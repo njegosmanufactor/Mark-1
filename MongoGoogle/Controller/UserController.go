@@ -30,9 +30,9 @@ func (uc *UserController) RegisterRoutes() {
 }
 
 func (uc *UserController) SendInvitation(res http.ResponseWriter, req *http.Request) {
-	_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
+	user, tokenpointer := service.GetUserAndPointerFromToken(res, req)
 	if tokenpointer != nil && tokenpointer.Valid {
-		service.SendInvitation(res, req)
+		service.SendInvitation(res, req, user)
 	} else {
 		json.NewEncoder(res).Encode("Session timed out or terminated")
 	}
@@ -57,10 +57,10 @@ func (uc *UserController) ChangePasswordHandler(res http.ResponseWriter, req *ht
 	service.FinaliseForgottenPasswordUpdate(transferId, res, req)
 }
 func (uc *UserController) TransferOwnership(res http.ResponseWriter, req *http.Request) {
-	_, tokenpointer := service.GetUserAndPointerFromToken(res, req)
+	user, tokenpointer := service.GetUserAndPointerFromToken(res, req)
 
 	if tokenpointer != nil && tokenpointer.Valid {
-		service.TransferOwnership(res, req)
+		service.TransferOwnership(res, req, user)
 	} else {
 		json.NewEncoder(res).Encode("Session timed out or terminated")
 	}
