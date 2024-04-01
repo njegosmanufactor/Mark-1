@@ -13,7 +13,7 @@ import (
 )
 
 // Completes the user authentication process using Google OAuth.
-func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request, user *oauth2v2.Userinfo) {
+func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request, user *oauth2v2.Userinfo) bool {
 	if data.FindUserEmail(user.Email) {
 		appUser, err := data.GetUserData(user.Email)
 		if err != nil {
@@ -21,8 +21,10 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		} else {
 			if appUser.ApplicationMethod != "Google" {
 				json.NewEncoder(res).Encode(user.Email + " already exists")
+				return false
 			}
 		}
+		return true
 	} else {
 		data.SaveUserApplication(user.Email, user.GivenName, user.FamilyName, "", "", user.Email, "", true, "Google")
 		//check if user has invites prior to registering
@@ -32,7 +34,7 @@ func CompleteGoogleUserAuthentication(res http.ResponseWriter, req *http.Request
 		if found {
 			SendInvitationMail(id.Hex(), user.Email)
 		}
-
+		return true
 	}
 }
 

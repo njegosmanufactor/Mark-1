@@ -11,7 +11,6 @@ import (
 	"log"
 	"unicode"
 
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -132,29 +131,34 @@ func FinaliseForgottenPasswordUpdate(transferId string, res http.ResponseWriter,
 // ApplicationRegister validates user input for registration and saves the application if valid, sending a verification email upon success.
 func ApplicationRegister(email string, firstName string, lastName string, phone string, date string, username string, password string, res http.ResponseWriter) {
 	if email == "" || username == "" || password == "" || date == "" || phone == "" || firstName == "" || lastName == "" {
-		fmt.Println("Some required parameters are missing.")
+		json.NewEncoder(res).Encode("Some required parameters are missing.")
 		return
 	}
 	dateOfBirth, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		fmt.Println("Invalid date format.")
+		json.NewEncoder(res).Encode("Invalid date format.")
 		return
 	}
 	if dateOfBirth.After(time.Now()) {
-		fmt.Println("Date of birth cannot be in the future.")
+		json.NewEncoder(res).Encode("Date of birth cannot be in the future.")
 		return
 	}
 	match, _ := regexp.MatchString("^[0-9]+$", phone)
 	if !match {
-		fmt.Println("Phone number must contain only digits.")
+		json.NewEncoder(res).Encode("Phone number must contain only digits.")
+		return
+	}
+	Emailmatch, _ := regexp.MatchString(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`, email)
+	if !Emailmatch {
+		json.NewEncoder(res).Encode("Invalid email format.")
 		return
 	}
 	if len(password) < 6 {
-		fmt.Println("Password must contain at least 6 charracters.")
+		json.NewEncoder(res).Encode("Password must contain at least 6 charracters.")
 		return
 	}
 	if !containsSpecialCharacters(password) {
-		fmt.Println("Password must contain a special charracter!")
+		json.NewEncoder(res).Encode("Password must contain a special charracter!")
 		return
 	}
 	HasUpper := false
@@ -168,16 +172,16 @@ func ApplicationRegister(email string, firstName string, lastName string, phone 
 		}
 	}
 	if !(HasUpper && HasLower) {
-		fmt.Println("Password must contain uppercase and lowercase letters!")
+		json.NewEncoder(res).Encode("Password must contain uppercase and lowercase letters!")
 		return
 	}
 	//Save user
 	if repo.FindUserEmail(email) {
-		fmt.Println("Email in use")
+		json.NewEncoder(res).Encode("Email in use")
 		return
 	}
 	if repo.FindUserUsername(username) {
-		fmt.Println("Username in use")
+		json.NewEncoder(res).Encode("Username in use")
 		return
 	} else {
 		hashedPass, hashError := repo.HashPassword(password)

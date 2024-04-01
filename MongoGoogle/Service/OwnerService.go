@@ -84,7 +84,6 @@ func UpdateOwnerRole(transfer model.PendingOwnershipTransfer, res http.ResponseW
 	}
 	return true
 }
-
 func UpdateCompanyEmployees(transfer model.PendingOwnershipTransfer, res http.ResponseWriter, companyCollection *mongo.Collection) bool {
 	companyFilter := bson.M{"_id": transfer.CompanyID}
 	user, found := conn.FindUserByMail(transfer.Email, res)

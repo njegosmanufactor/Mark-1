@@ -44,12 +44,15 @@ func (ac *AuthenticationController) GithubLoginCallback(res http.ResponseWriter,
 func (ac *AuthenticationController) GoogleLogIn(res http.ResponseWriter, req *http.Request) {
 	accessToken := req.URL.Query().Get("access_token")
 	googleUser := service.TokenGoogleLoginLogic(res, req, accessToken)
-	service.CompleteGoogleUserAuthentication(res, req, googleUser)
-	user := service.GetUserData(googleUser.Email)
-	tokenString, _ := service.GenerateToken(user, time.Hour)
-	if tokenString != "" {
-		json.NewEncoder(res).Encode(tokenString)
+	success := service.CompleteGoogleUserAuthentication(res, req, googleUser)
+	if success {
+		user := service.GetUserData(googleUser.Email)
+		tokenString, _ := service.GenerateToken(user, time.Hour)
+		if tokenString != "" {
+			json.NewEncoder(res).Encode(tokenString)
+		}
 	}
+
 }
 func (ac *AuthenticationController) Login(res http.ResponseWriter, req *http.Request) {
 	var requestBody struct {
@@ -120,8 +123,13 @@ func (ac *AuthenticationController) Register(res http.ResponseWriter, req *http.
 }
 func (ac *AuthenticationController) Logout(res http.ResponseWriter, req *http.Request) {
 	user, _ := service.GetUserAndPointerFromToken(res, req)
-	tokenExpString, _ := service.GenerateToken(user, time.Second)
-	json.NewEncoder(res).Encode(tokenExpString)
+	if user.ID.Hex() != "000000000000000000000000" {
+		tokenExpString, _ := service.GenerateToken(user, time.Second)
+		json.NewEncoder(res).Encode(tokenExpString)
+	} else {
+		json.NewEncoder(res).Encode("User not exist")
+	}
+
 }
 
 func (ac *AuthenticationController) VerifyEmail(res http.ResponseWriter, req *http.Request) {
