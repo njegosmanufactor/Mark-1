@@ -30,3 +30,31 @@ func CreateCashFlowCompany(res http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(res).Encode("User not found")
 	}
 }
+
+func CreateInflow(res http.ResponseWriter, req *http.Request) {
+	_, tokenpointer := GetUserAndPointerFromToken(res, req)
+	var request struct {
+		Name        string  `json:"name"`
+		CashflowID  string  `json:"cashflowID"`
+		UserID      string  `json:"userID"`
+		Duration    string  `json:"duration"`
+		Amount      float32 `json:"amount"`
+		Category    string  `json:"category"`
+		Subcategory string  `json:"subcategory"`
+	}
+	if tokenpointer != nil && tokenpointer.Valid {
+		err := json.NewDecoder(req.Body).Decode(&request)
+		if err != nil {
+			http.Error(res, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		if dataBase.InsertInflow(request.Name, request.CashflowID, request.UserID, request.Duration, request.Amount, request.Category, request.Subcategory, res) {
+			json.NewEncoder(res).Encode("Inflow created")
+		} else {
+			json.NewEncoder(res).Encode("Error on creating inflow.")
+			return
+		}
+	} else {
+		json.NewEncoder(res).Encode("User not found")
+	}
+}
